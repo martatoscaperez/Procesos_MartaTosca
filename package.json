@@ -1,0 +1,25 @@
+{
+  "name": "procesos_martatosca",
+  "version": "1.0.0",
+  "description": "Proyecto de Ingeniería del Software curso 26-27\r Bievenidos al Proyecto de Procesos 26-27",
+  "main": "index.js",
+  "scripts": {
+    "start": "node servidor/api.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martatoscaperez/Procesos_MartaTosca.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/martatoscaperez/Procesos_MartaTosca/issues"
+  },
+  "homepage": "https://github.com/martatoscaperez/Procesos_MartaTosca#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
