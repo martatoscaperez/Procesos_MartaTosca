@@ -1,0 +1,33 @@
+name: Pruebas del backend
+
+# Cuándo se ejecuta.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Obtiene el código del repositorio.
+      - name: Descargar código
+        uses: actions/checkout@v6
+
+      # Prepara Node.js 24, como en nuestro entorno local.
+      - name: Preparar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      # Instala las versiones registradas en package-lock.json.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Ejecuta las pruebas automáticas.
+      - name: Ejecutar pruebas
+        run: npm test

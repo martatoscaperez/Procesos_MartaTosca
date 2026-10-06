@@ -1,26 +1,76 @@
-// Capa API: recibe peticiones HTTP y devuelve respuestas al cliente.
-// De momento probamos el servidor; después lo conectaremos con la lógica.
-
+// Capa API: recibe peticiones HTTP, llama a la lógica
+// y devuelve respuestas al cliente.
 import express from 'express';
-import { obtenerEstadoAplicacion } from './logica.js';
+import {
+  obtenerEstadoAplicacion,
+  crearServicioUsuarios
+} from './logica.js';
 
 // Creamos la aplicación Express.
 const app = express();
 
-// Usamos el puerto configurado en el entorno o, si no existe, el 3000.
+// Un único servicio conserva los usuarios entre peticiones.
+// Al reiniciar el servidor, los datos en memoria se pierden.
+const servicioUsuarios = crearServicioUsuarios();
+
+// Usamos el puerto del entorno o el 3000 por defecto.
 const puerto = process.env.PORT || 3000;
 
-// Permite leer los datos JSON recibidos en las peticiones.
+// Permite leer el cuerpo JSON de las peticiones.
 app.use(express.json());
 
-// Ruta de prueba para comprobar que el servidor responde.
-// req representa la petición recibida y res la respuesta que enviamos.
+// GET: consulta el estado de la aplicación.
 app.get('/api/estado', (req, res) => {
   const estado = obtenerEstadoAplicacion();
   res.json(estado);
 });
 
-// Arrancamos el servidor para que escuche peticiones en ese puerto.
+// POST: crea un usuario con el email recibido.
+app.post('/api/usuarios', (req, res) => {
+  try {
+    const email = req.body?.email;
+    const usuario = servicioUsuarios.agregarUsuario(email);
+
+    // 201 indica que se ha creado un recurso.
+    res.status(201).json(usuario);
+  } catch (error) {
+    // Manejo provisional de los errores del alta.
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// GET: obtiene el listado a través de la lógica.
+// Pendiente: restringir esta operación al administrador.
+app.get('/api/usuarios', (req, res) => {
+  const usuarios = servicioUsuarios.obtenerUsuarios();
+  res.json(usuarios);
+});
+// Consulta si una cuenta está activa.
+// Pendiente: restringir esta operación al administrador.
+app.get('/api/usuarios/:email/activo', (req, res) => {
+  try {
+    // req.params recoge el email incluido en la URL.
+    const email = req.params.email;
+    const activo = servicioUsuarios.usuarioActivo(email);
+
+    res.json({ activo });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+// Marca la cuenta como eliminada a través de la lógica.
+// Pendiente: permitir solo al administrador o al dueño de la cuenta.
+app.delete('/api/usuarios/:email', (req, res) => {
+  try {
+    const email = req.params.email;
+    const usuario = servicioUsuarios.eliminarUsuario(email);
+
+    res.json(usuario);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+// Arrancamos el servidor para escuchar peticiones.
 app.listen(puerto, () => {
   console.log(`Servidor en http://localhost:${puerto}`);
 });
