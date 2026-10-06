@@ -5,6 +5,7 @@ import {
   obtenerEstadoAplicacion,
   crearServicioUsuarios
 } from './logica.js';
+import { fileURLToPath } from 'node:url';
 
 // Creamos la aplicación Express.
 const app = express();
@@ -18,6 +19,14 @@ const puerto = process.env.PORT || 3000;
 
 // Permite leer el cuerpo JSON de las peticiones.
 app.use(express.json());
+
+// Localizamos la carpeta cliente tomando como referencia este archivo.
+const carpetaCliente = fileURLToPath(
+  new URL('../cliente/', import.meta.url)
+);
+
+// Servimos sus archivos. En la ruta "/" se mostrará index.html.
+app.use(express.static(carpetaCliente));
 
 // GET: consulta el estado de la aplicación.
 app.get('/api/estado', (req, res) => {
