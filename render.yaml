@@ -1,0 +1,10 @@
+# Configuración del servicio web en Render.
+services:
+  - type: web
+    name: piso_compartido
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm ci
+    startCommand: npm start
+    autoDeployTrigger: commit
