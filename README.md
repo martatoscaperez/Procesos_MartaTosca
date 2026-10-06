@@ -1,33 +1,84 @@
-# Procesos_MartaTosca
-Proyecto de Ingeniería del Software curso 26-27
-Bievenidos al Proyecto de Procesos 26-27
+# Piso compartido
 
-# Sprint 1: Desarrollar la arquitectura base del proyecto
-El objetivo..
+Proyecto individual de Procesos de Ingeniería del Software,
+curso 2026–2027.
 
-# Backend separado por capas
+Aplicación web para organizar las tareas domésticas de un piso compartido.
+Actualmente incluye una página inicial y la gestión básica de usuarios
+en memoria.
 
-El backend utiliza JavaScript, Node.js y Express.
-Node.js permite ejecutar JavaScript en el servidor y Express facilita
-la definición de las rutas HTTP.
+## Tecnologías
 
-Se organiza en tres capas:
+- JavaScript y Node.js: permiten desarrollar el servidor en JavaScript.
+- Express: gestiona las rutas de la API y sirve la página web.
+- Node Test Runner: ejecuta las pruebas automatizadas.
+- GitHub Actions: ejecuta las pruebas en los pull requests y en main.
+- Render: aloja la aplicación y despliega automáticamente los cambios de main.
 
-- servidor/api.js: recibe peticiones HTTP, llama a la lógica
-  y devuelve respuestas JSON.
-- servidor/logica.js: contiene los casos de uso y las reglas
-  de la aplicación. Consulta la capa de datos y no depende de Express.
-- servidor/datos.js: se encarga del acceso al almacenamiento.
-  La conexión a una base de datos está pendiente.
+## Arquitectura
 
-Las llamadas siguen esta dirección: API → lógica → datos.
-La API no accede directamente a la capa de datos.
+El backend está separado en tres capas:
 
-### Ejecutar en local
+- `servidor/api.js`: recibe peticiones HTTP y devuelve respuestas.
+- `servidor/logica.js`: aplica las reglas de gestión de usuarios.
+- `servidor/datos.js`: almacena y consulta usuarios en memoria.
 
-1. Instalar las dependencias con `npm.cmd install`.
-2. Arrancar el servidor con `npm.cmd start`.
-3. Abrir http://localhost:3000/api/estado.
+El recorrido es: **API → lógica → datos**.
 
-La ruta de estado recorre las tres capas y devuelve un mensaje
-de funcionamiento junto con persistenciaConfigurada: false.
+El backend sirve el frontend desde la carpeta `cliente`.
+
+## Ejecutar en local
+
+Requiere Node.js 24 y npm. Desde la raíz del proyecto:
+
+```sh
+npm ci
+npm start
+```
+
+Abrir http://localhost:3000.
+
+En PowerShell puede utilizarse `npm.cmd` en lugar de `npm`.
+
+## Pruebas
+
+```sh
+npm test
+```
+
+Las siete pruebas comprueban altas, duplicados, email vacío,
+listado, estado pendiente y eliminación, incluyendo casos de error.
+
+## API
+
+- `GET /api/estado`: consulta el estado del sistema.
+- `POST /api/usuarios`: crea una cuenta pendiente enviando un email en JSON.
+- `GET /api/usuarios`: lista usuarios.
+- `GET /api/usuarios/:email/activo`: consulta si una cuenta está activa.
+- `DELETE /api/usuarios/:email`: marca una cuenta como eliminada.
+
+Los datos se pierden al reiniciar el servidor.
+La autenticación y los permisos todavía están pendientes:
+usar únicamente datos ficticios.
+
+## Despliegue
+
+Aplicación: https://piso-compartido-louo.onrender.com
+
+Render utiliza el plan Free, la rama `main`, `npm ci` para instalar
+dependencias y `npm start` para arrancar. Auto-Deploy está configurado
+en On Commit.
+
+El servicio puede tardar en responder tras un periodo de inactividad.
+Está pendiente guardar una configuración reproducible del despliegue
+en el repositorio.
+
+## Variables de entorno
+
+- `PORT`: opcional; por defecto se utiliza 3000.
+
+## Próximos pasos
+
+Completar el frontend, autenticación, sesiones, roles y persistencia.
+El acceso como administrador se documentará cuando esté implementado.
+Las credenciales de prueba no se publicarán en el repositorio.
