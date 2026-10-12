@@ -1,10 +1,10 @@
-// La lógica consulta los datos sin conocer cómo se almacenan.
+import bcrypt from 'bcrypt';
 import {
   obtenerEstadoDatos,
   crearRepositorioUsuarios
 } from './datos.js';
 
-// Consulta el almacenamiento y prepara el estado de la aplicación.
+// Consulta el estado del almacenamiento.
 export function obtenerEstadoAplicacion() {
   const datos = obtenerEstadoDatos();
 
@@ -14,60 +14,89 @@ export function obtenerEstadoAplicacion() {
   };
 }
 
-// Capa de lógica: contiene las operaciones y reglas de usuarios.
-// Recibe un repositorio o crea uno nuevo si no se proporciona.
-// Las pruebas podrán usar un almacén independiente.
+// Valida y normaliza el email.
+function normalizarEmail(email) {
+  if (typeof email !== 'string' || email.trim() === '') {
+    throw new Error('El email es obligatorio.');
+  }
+
+  return email.trim().toLowerCase();
+}
+
+// Selecciona los campos que podemos devolver al cliente.
+// El hash de la contraseña se queda en el servidor.
+function obtenerDatosPublicos(usuario) {
+  return {
+    email: usuario.email,
+    nombre: usuario.nombre,
+    rol: usuario.rol,
+    estado: usuario.estado
+  };
+}
+
+// Contiene las operaciones y reglas de usuarios.
 export function crearServicioUsuarios(
   repositorio = crearRepositorioUsuarios()
 ) {
   return {
-    // Crea una cuenta pendiente y evita emails duplicados.
-    agregarUsuario(email) {
-      if (typeof email !== 'string' || email.trim() === '') {
-        throw new Error('El email es obligatorio.');
+    // El hash se calcula de forma asíncrona.
+    async agregarUsuario(email, nombre, clave) {
+      const emailNormalizado = normalizarEmail(email);
+
+      if (typeof nombre !== 'string' || nombre.trim() === '') {
+        throw new Error('El nombre es obligatorio.');
       }
 
-      const emailNormalizado = email.trim().toLowerCase();
+      if (typeof clave !== 'string' || clave.length === 0) {
+        throw new Error('La contraseña es obligatoria.');
+      }
 
+      // bcrypt utiliza como máximo 72 bytes de la contraseña.
+      // Rechazamos valores mayores para evitar que se recorten.
+      if (Buffer.byteLength(clave, 'utf8') > 72) {
+        throw new Error('La contraseña supera el límite de 72 bytes.');
+      }
+
+      if (repositorio.buscarPorEmail(emailNormalizado)) {
+        throw new Error('Ya existe un usuario con ese email.');
+      }
+
+      // 12 es el factor de trabajo, no una longitud de contraseña.
+      const claveHash = await bcrypt.hash(clave, 12);
+
+      // Comprobamos otra vez porque durante el await puede llegar
+      // otra petición de registro con el mismo email.
       if (repositorio.buscarPorEmail(emailNormalizado)) {
         throw new Error('Ya existe un usuario con ese email.');
       }
 
       const usuario = {
         email: emailNormalizado,
+        nombre: nombre.trim(),
+        claveHash,
         rol: 'usuario',
         estado: 'pendiente'
       };
 
-      return repositorio.guardar(usuario);
+      const guardado = repositorio.guardar(usuario);
+      return obtenerDatosPublicos(guardado);
     },
 
-    // Devuelve todos los usuarios, incluyendo su rol y estado.
+    // Nunca devuelve hashes al cliente.
     obtenerUsuarios() {
-      return repositorio.listar();
+      return repositorio.listar().map(obtenerDatosPublicos);
     },
 
-    // Comprueba si la cuenta está activa.
-    // Las cuentas pendientes, eliminadas o inexistentes devuelven false.
+    // Una cuenta pendiente, eliminada o inexistente no está activa.
     usuarioActivo(email) {
-      if (typeof email !== 'string' || email.trim() === '') {
-        throw new Error('El email es obligatorio.');
-      }
-
-      const emailNormalizado = email.trim().toLowerCase();
-      const usuario = repositorio.buscarPorEmail(emailNormalizado);
+      const usuario = repositorio.buscarPorEmail(normalizarEmail(email));
 
       return usuario !== null && usuario.estado === 'activo';
     },
 
-    // Conserva la cuenta, pero cambia su estado a eliminado.
+    // Marca la cuenta como eliminada y devuelve sus datos públicos.
     eliminarUsuario(email) {
-      if (typeof email !== 'string' || email.trim() === '') {
-        throw new Error('El email es obligatorio.');
-      }
-
-      const emailNormalizado = email.trim().toLowerCase();
-      const usuario = repositorio.buscarPorEmail(emailNormalizado);
+      const usuario = repositorio.buscarPorEmail(normalizarEmail(email));
 
       if (!usuario) {
         throw new Error('El usuario no existe.');
@@ -79,7 +108,8 @@ export function crearServicioUsuarios(
 
       usuario.estado = 'eliminado';
 
-      return repositorio.guardar(usuario);
+      const guardado = repositorio.guardar(usuario);
+      return obtenerDatosPublicos(guardado);
     }
   };
 }

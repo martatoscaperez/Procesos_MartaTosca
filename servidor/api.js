@@ -35,15 +35,22 @@ app.get('/api/estado', (req, res) => {
 });
 
 // POST: crea un usuario con el email recibido.
-app.post('/api/usuarios', (req, res) => {
+// Recibe los datos del registro y delega las reglas en la lógica.
+app.post('/api/usuarios', async (req, res) => {
   try {
-    const email = req.body?.email;
-    const usuario = servicioUsuarios.agregarUsuario(email);
+    const { email, nombre, clave } = req.body ?? {};
 
-    // 201 indica que se ha creado un recurso.
+    // Esperamos a que la lógica calcule el hash y guarde la cuenta.
+    const usuario = await servicioUsuarios.agregarUsuario(
+      email,
+      nombre,
+      clave
+    );
+
+    // La lógica devuelve datos públicos, sin contraseña ni hash.
     res.status(201).json(usuario);
   } catch (error) {
-    // Manejo provisional de los errores del alta.
+    // Manejo provisional de errores; lo afinaremos después.
     res.status(400).json({ error: error.message });
   }
 });
