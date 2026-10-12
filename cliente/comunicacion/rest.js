@@ -9,3 +9,21 @@ export async function consultarEstado() {
 
   return respuesta.json();
 }
+// Envía los datos del registro al servidor.
+export async function registrarUsuario(email, nombre, clave) {
+  const respuesta = await fetch('/api/usuarios', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email, nombre, clave })
+  });
+
+  const resultado = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(resultado.error || 'No se pudo crear la cuenta.');
+  }
+
+  return resultado;
+}

@@ -1,6 +1,9 @@
 // Capa de presentación: consulta la API mediante rest.js
 // y actualiza lo que ve el usuario.
-import { consultarEstado } from './comunicacion/rest.js';
+import {
+  consultarEstado,
+  registrarUsuario
+} from './comunicacion/rest.js';
 
 // Localizamos los elementos de la página.
 const indicadorServidor = document.getElementById('estado-servidor');
@@ -47,13 +50,18 @@ formularioLogin.addEventListener('submit', (evento) => {
   mensaje.textContent = 'El inicio de sesión todavía no está conectado.';
 });
 
-// Comprueba los campos antes de conectar el registro con la API.
-formularioRegistro.addEventListener('submit', (evento) => {
+// Comprueba el formulario y solicita el registro mediante rest.js.
+formularioRegistro.addEventListener('submit', async (evento) => {
   evento.preventDefault();
 
+  const email = document.getElementById('registro-email').value.trim();
   const nombre = document.getElementById('registro-nombre').value.trim();
   const clave = document.getElementById('registro-clave').value;
   const repetir = document.getElementById('registro-repetir').value;
+
+  const botonEnviar = formularioRegistro.querySelector(
+    'button[type="submit"]'
+  );
 
   if (nombre === '') {
     mensaje.textContent = 'Escribe tu nombre.';
@@ -65,8 +73,23 @@ formularioRegistro.addEventListener('submit', (evento) => {
     return;
   }
 
-  mensaje.textContent =
-    'Los campos están completos. El registro todavía no está conectado.';
+  // Evitamos envíos repetidos mientras esperamos la respuesta.
+  botonEnviar.disabled = true;
+  mensaje.textContent = 'Creando cuenta…';
+
+  try {
+    const usuario = await registrarUsuario(email, nombre, clave);
+
+    formularioRegistro.reset();
+
+    mensaje.textContent =
+      `Cuenta creada para ${usuario.nombre}. Está pendiente de confirmación.`;
+  } catch (error) {
+    mensaje.textContent = error.message;
+  } finally {
+    // Reactivamos el botón tanto si funciona como si falla.
+    botonEnviar.disabled = false;
+  }
 });
 
 // Comprobamos el estado al cargar la página.
