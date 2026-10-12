@@ -88,7 +88,18 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
   // Una petición sin cookie no tiene sesión.
   const sinSesion = await fetch(`${baseUrl}/api/sesion`);
   assert.equal(sinSesion.status, 401);
+    // Las rutas protegidas rechazan peticiones sin sesión.
+  for (const [ruta, metodo] of [
+    ['/api/usuarios', 'GET'],
+    ['/api/usuarios/sesion@example.com/activo', 'GET'],
+    ['/api/usuarios/sesion@example.com', 'DELETE']
+  ]) {
+    const respuesta = await fetch(`${baseUrl}${ruta}`, {
+      method: metodo
+    });
 
+    assert.equal(respuesta.status, 401);
+  }
   // Las credenciales incorrectas no crean una sesión.
   const incorrecto = await fetch(`${baseUrl}/api/login`, {
     method: 'POST',
@@ -130,6 +141,55 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
 
   // Enviamos solo el nombre y el valor de la cookie.
   const cookie = cookieCompleta.split(';')[0];
+    // El usuario normal no puede realizar consultas de administrador.
+  for (const ruta of [
+    '/api/usuarios',
+    '/api/usuarios/sesion@example.com/activo'
+  ]) {
+    const respuesta = await fetch(`${baseUrl}${ruta}`, {
+      headers: { Cookie: cookie }
+    });
+
+    assert.equal(respuesta.status, 403);
+  }
+
+  // Creamos otra cuenta para comprobar que no puede eliminarla.
+  const registroOtraCuenta = await fetch(`${baseUrl}/api/usuarios`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'otra@example.com',
+      nombre: 'Otra persona',
+      clave: 'otra-clave-ficticia'
+    })
+  });
+
+  assert.equal(registroOtraCuenta.status, 201);
+
+  const eliminarOtraCuenta = await fetch(
+    `${baseUrl}/api/usuarios/otra@example.com`,
+    {
+      method: 'DELETE',
+      headers: { Cookie: cookie }
+    }
+  );
+
+  assert.equal(eliminarOtraCuenta.status, 403);
+
+  // La cuenta sigue pendiente: no se ha eliminado.
+  const loginOtraCuenta = await fetch(`${baseUrl}/api/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'otra@example.com',
+      clave: 'otra-clave-ficticia'
+    })
+  });
+
+  assert.equal(loginOtraCuenta.status, 401);
+  assert.deepEqual(await loginOtraCuenta.json(), {
+    error: 'La cuenta está pendiente de confirmación.'
+  });
 
   // Dos peticiones distintas simulan consultas tras recargar la página.
   for (let intento = 0; intento < 2; intento++) {
@@ -164,4 +224,50 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
   });
 
   assert.equal(despuesDelLogout.status, 401);
+    // Volvemos a entrar para comprobar la eliminación de la propia cuenta.
+  const segundoLogin = await fetch(`${baseUrl}/api/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'sesion@example.com',
+      clave: 'clave-ficticia-de-prueba'
+    })
+  });
+
+  assert.equal(segundoLogin.status, 200);
+
+  const segundaCookieCompleta = segundoLogin.headers.get('set-cookie');
+  assert.ok(segundaCookieCompleta);
+
+  const segundaCookie = segundaCookieCompleta.split(';')[0];
+
+  const eliminarPropiaCuenta = await fetch(
+    `${baseUrl}/api/usuarios/sesion@example.com`,
+    {
+      method: 'DELETE',
+      headers: { Cookie: segundaCookie }
+    }
+  );
+
+  assert.equal(eliminarPropiaCuenta.status, 200);
+  assert.equal((await eliminarPropiaCuenta.json()).estado, 'eliminado');
+
+  // Una cuenta eliminada pierde el acceso aunque conserve su cookie.
+  const sesionEliminada = await fetch(`${baseUrl}/api/sesion`, {
+    headers: { Cookie: segundaCookie }
+  });
+
+  assert.equal(sesionEliminada.status, 401);
+
+  // Tampoco puede volver a iniciar sesión.
+  const loginEliminado = await fetch(`${baseUrl}/api/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'sesion@example.com',
+      clave: 'clave-ficticia-de-prueba'
+    })
+  });
+
+  assert.equal(loginEliminado.status, 401);
 });
