@@ -4,7 +4,7 @@
   "description": "Proyecto de Ingeniería del Software curso 26-27\r Bievenidos al Proyecto de Procesos 26-27",
   "main": "index.js",
   "scripts": {
-    "start": "node servidor/api.js",
+    "start": "node --env-file-if-exists=.env servidor/api.js",
     "test": "node --test"
   },
   "repository": {
@@ -21,6 +21,7 @@
   "homepage": "https://github.com/martatoscaperez/Procesos_MartaTosca#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-session": "^1.19.0"
   }
 }

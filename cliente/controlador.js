@@ -2,7 +2,8 @@
 // y actualiza lo que ve el usuario.
 import {
   consultarEstado,
-  registrarUsuario
+  registrarUsuario,
+  iniciarSesion
 } from './comunicacion/rest.js';
 
 // Localizamos los elementos de la página.
@@ -44,10 +45,30 @@ botonRegistro.addEventListener('click', () => {
   cambiarFormulario(false);
 });
 
-// Provisional: el inicio de sesión todavía no llama a la API.
-formularioLogin.addEventListener('submit', (evento) => {
+// Envía las credenciales y muestra el resultado del login.
+formularioLogin.addEventListener('submit', async (evento) => {
   evento.preventDefault();
-  mensaje.textContent = 'El inicio de sesión todavía no está conectado.';
+
+  const email = document.getElementById('login-email').value.trim();
+  const clave = document.getElementById('login-clave').value;
+
+  const botonEnviar = formularioLogin.querySelector(
+    'button[type="submit"]'
+  );
+
+  botonEnviar.disabled = true;
+  mensaje.textContent = 'Iniciando sesión…';
+
+  try {
+    const usuario = await iniciarSesion(email, clave);
+
+    formularioLogin.reset();
+    mensaje.textContent = `Has iniciado sesión como ${usuario.nombre}.`;
+  } catch (error) {
+    mensaje.textContent = error.message;
+  } finally {
+    botonEnviar.disabled = false;
+  }
 });
 
 // Comprueba el formulario y solicita el registro mediante rest.js.

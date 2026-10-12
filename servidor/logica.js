@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { randomBytes, createHash } from 'node:crypto';
 import {
   obtenerEstadoDatos,
   crearRepositorioUsuarios
@@ -24,7 +25,7 @@ function normalizarEmail(email) {
 }
 
 // Selecciona los campos que podemos devolver al cliente.
-// El hash de la contraseña se queda en el servidor.
+// Los hashes y los datos de confirmación se quedan en el servidor.
 function obtenerDatosPublicos(usuario) {
   return {
     email: usuario.email,
@@ -52,7 +53,6 @@ export function crearServicioUsuarios(
       }
 
       // bcrypt utiliza como máximo 72 bytes de la contraseña.
-      // Rechazamos valores mayores para evitar que se recorten.
       if (Buffer.byteLength(clave, 'utf8') > 72) {
         throw new Error('La contraseña supera el límite de 72 bytes.');
       }
@@ -61,11 +61,10 @@ export function crearServicioUsuarios(
         throw new Error('Ya existe un usuario con ese email.');
       }
 
-      // 12 es el factor de trabajo, no una longitud de contraseña.
+      // 12 es el factor de trabajo del cálculo del hash.
       const claveHash = await bcrypt.hash(clave, 12);
 
-      // Comprobamos otra vez porque durante el await puede llegar
-      // otra petición de registro con el mismo email.
+      // Durante el await podría llegar otro registro del mismo email.
       if (repositorio.buscarPorEmail(emailNormalizado)) {
         throw new Error('Ya existe un usuario con ese email.');
       }
@@ -82,7 +81,111 @@ export function crearServicioUsuarios(
       return obtenerDatosPublicos(guardado);
     },
 
-    // Nunca devuelve hashes al cliente.
+    // Genera un código para confirmar una cuenta pendiente.
+    generarConfirmacion(email) {
+      const emailNormalizado = normalizarEmail(email);
+      const usuario = repositorio.buscarPorEmail(emailNormalizado);
+
+      if (!usuario || usuario.estado !== 'pendiente') {
+        throw new Error('La cuenta no está pendiente de confirmación.');
+      }
+
+      const token = randomBytes(32).toString('hex');
+
+      // Guardamos el hash del código, no el código original.
+      usuario.confirmacionHash = createHash('sha256')
+        .update(token)
+        .digest('hex');
+
+      // El código caduca después de una hora.
+      usuario.confirmacionCaduca = Date.now() + 1000 * 60 * 60;
+
+      repositorio.guardar(usuario);
+
+      // La API lo utilizará para construir el enlace del correo.
+      return token;
+    },
+
+    // Comprueba el código y activa la cuenta.
+    confirmarUsuario(email, token) {
+      const emailNormalizado = normalizarEmail(email);
+      const usuario = repositorio.buscarPorEmail(emailNormalizado);
+
+      if (
+        !usuario ||
+        usuario.estado !== 'pendiente' ||
+        typeof token !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(token) ||
+        !usuario.confirmacionHash ||
+        !Number.isFinite(usuario.confirmacionCaduca) ||
+        usuario.confirmacionCaduca <= Date.now()
+      ) {
+        throw new Error(
+          'El enlace de confirmación no es válido o ha caducado.'
+        );
+      }
+
+      const tokenHash = createHash('sha256')
+        .update(token)
+        .digest('hex');
+
+      if (tokenHash !== usuario.confirmacionHash) {
+        throw new Error(
+          'El enlace de confirmación no es válido o ha caducado.'
+        );
+      }
+
+      usuario.estado = 'activo';
+
+      // Eliminamos el código para que no pueda reutilizarse.
+      delete usuario.confirmacionHash;
+      delete usuario.confirmacionCaduca;
+
+      const guardado = repositorio.guardar(usuario);
+      return obtenerDatosPublicos(guardado);
+    },
+
+    // Comprueba las credenciales y el estado de la cuenta.
+    // La creación de la sesión corresponde a la capa API.
+    async iniciarSesion(email, clave) {
+      const emailNormalizado = normalizarEmail(email);
+
+      if (typeof clave !== 'string' || clave.length === 0) {
+        throw new Error('La contraseña es obligatoria.');
+      }
+
+      // Evitamos que bcrypt ignore parte de una contraseña demasiado larga.
+      if (Buffer.byteLength(clave, 'utf8') > 72) {
+        throw new Error('Email o contraseña incorrectos.');
+      }
+
+      const usuario = repositorio.buscarPorEmail(emailNormalizado);
+
+      if (!usuario || usuario.estado === 'eliminado') {
+        throw new Error('Email o contraseña incorrectos.');
+      }
+
+      const claveCorrecta = await bcrypt.compare(clave, usuario.claveHash);
+
+      if (!claveCorrecta) {
+        throw new Error('Email o contraseña incorrectos.');
+      }
+
+      // Consultamos otra vez: el estado puede cambiar durante el await.
+      const usuarioActual = repositorio.buscarPorEmail(emailNormalizado);
+
+      if (!usuarioActual || usuarioActual.estado === 'eliminado') {
+        throw new Error('Email o contraseña incorrectos.');
+      }
+
+      if (usuarioActual.estado !== 'activo') {
+        throw new Error('La cuenta está pendiente de confirmación.');
+      }
+
+      return obtenerDatosPublicos(usuarioActual);
+    },
+
+    // Nunca devuelve hashes ni códigos de confirmación al cliente.
     obtenerUsuarios() {
       return repositorio.listar().map(obtenerDatosPublicos);
     },

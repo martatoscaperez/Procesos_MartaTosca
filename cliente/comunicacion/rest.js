@@ -27,3 +27,21 @@ export async function registrarUsuario(email, nombre, clave) {
 
   return resultado;
 }
+// Envía las credenciales y recibe el resultado del login.
+export async function iniciarSesion(email, clave) {
+  const respuesta = await fetch('/api/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email, clave })
+  });
+
+  const resultado = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(resultado.error || 'No se pudo iniciar sesión.');
+  }
+
+  return resultado;
+}
