@@ -45,3 +45,41 @@ export async function iniciarSesion(email, clave) {
 
   return resultado;
 }
+// Consulta si hay un usuario con sesión iniciada.
+export async function consultarSesion() {
+  const respuesta = await fetch('/api/sesion', {
+    cache: 'no-store'
+  });
+
+  // No tener sesión iniciada es un estado normal.
+  if (respuesta.status === 401) {
+    return null;
+  }
+
+  const resultado = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(
+      resultado.error || 'No se pudo consultar la sesión.'
+    );
+  }
+
+  return resultado;
+}
+
+// Solicita al servidor que invalide la sesión.
+export async function cerrarSesion() {
+  const respuesta = await fetch('/api/logout', {
+    method: 'POST'
+  });
+
+  const resultado = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(
+      resultado.error || 'No se pudo cerrar la sesión.'
+    );
+  }
+
+  return resultado;
+}

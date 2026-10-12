@@ -413,3 +413,57 @@ test('rechaza generar un código para una cuenta inexistente o activa', async ()
     /La cuenta no está pendiente de confirmación/
   );
 });
+test('consulta una cuenta activa y devuelve solo datos públicos', async () => {
+  const servicio = crearServicioUsuarios();
+
+  await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
+
+  const token = servicio.generarConfirmacion('marta@example.com');
+  servicio.confirmarUsuario('marta@example.com', token);
+
+  const usuario = servicio.obtenerUsuarioActivo(' MARTA@example.com ');
+
+  assert.deepEqual(usuario, {
+    email: 'marta@example.com',
+    nombre: 'Marta',
+    rol: 'usuario',
+    estado: 'activo'
+  });
+});
+
+test('rechaza consultar como activa una cuenta pendiente', async () => {
+  const servicio = crearServicioUsuarios();
+
+  await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
+
+  assert.throws(
+    () => servicio.obtenerUsuarioActivo('marta@example.com'),
+    /La cuenta no está activa/
+  );
+});
+
+test('rechaza consultar como activa una cuenta inexistente', () => {
+  const servicio = crearServicioUsuarios();
+
+  assert.throws(
+    () => servicio.obtenerUsuarioActivo('nadie@example.com'),
+    /La cuenta no está activa/
+  );
+});
+
+test('rechaza consultar una cuenta eliminada después del login', async () => {
+  const servicio = crearServicioUsuarios();
+
+  await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
+
+  const token = servicio.generarConfirmacion('marta@example.com');
+  servicio.confirmarUsuario('marta@example.com', token);
+
+  await servicio.iniciarSesion('marta@example.com', 'ejemplo');
+  servicio.eliminarUsuario('marta@example.com');
+
+  assert.throws(
+    () => servicio.obtenerUsuarioActivo('marta@example.com'),
+    /La cuenta no está activa/
+  );
+});
