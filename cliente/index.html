@@ -4,12 +4,72 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Piso compartido</title>
+
+  <!-- Los estilos están separados del contenido. -->
+  <link rel="stylesheet" href="./estilos.css">
 </head>
 <body>
-  <h1>Piso compartido</h1>
-  <p>Aplicación para organizar las tareas domésticas del piso.</p>
-  <p>Proyecto en desarrollo: arquitectura inicial y usuarios en memoria.</p>
-  <p>Hito 1: backend por capas, usuarios en memoria y pruebas automatizadas.</p>
-  <a href="/api/estado">Consultar el estado del servidor</a>
+  <header class="cabecera">
+    <h1>Piso compartido</h1>
+    <p id="estado-servidor" role="status">Servidor: comprobando…</p>
+  </header>
+
+  <main>
+    <section class="tarjeta">
+      <h2>Organiza la vida en tu piso</h2>
+
+      <!-- Botones para cambiar entre los dos formularios. -->
+      <div class="pestanas">
+        <button id="mostrar-login" type="button" aria-pressed="true">
+          Iniciar sesión
+        </button>
+        <button id="mostrar-registro" type="button" aria-pressed="false">
+          Crear cuenta
+        </button>
+      </div>
+
+      <form id="formulario-login">
+        <h3>Iniciar sesión</h3>
+
+        <label for="login-email">Email</label>
+        <input id="login-email" name="email" type="email"
+               autocomplete="username" required>
+
+        <label for="login-clave">Contraseña</label>
+        <input id="login-clave" name="clave" type="password"
+               autocomplete="current-password" required>
+
+        <button type="submit">Entrar</button>
+      </form>
+
+      <!-- hidden mantiene el formulario oculto inicialmente. -->
+      <form id="formulario-registro" hidden>
+        <h3>Crear cuenta</h3>
+
+        <label for="registro-email">Email</label>
+        <input id="registro-email" name="email" type="email"
+               autocomplete="username" required>
+
+        <label for="registro-nombre">Nombre</label>
+        <input id="registro-nombre" name="nombre" type="text"
+               autocomplete="name" required>
+
+        <label for="registro-clave">Contraseña</label>
+        <input id="registro-clave" name="clave" type="password"
+               autocomplete="new-password" required>
+
+        <label for="registro-repetir">Repite la contraseña</label>
+        <input id="registro-repetir" name="repetir" type="password"
+               autocomplete="new-password" required>
+
+        <button type="submit">Crear cuenta</button>
+      </form>
+
+      <!-- Espacio para mostrar el resultado de las acciones. -->
+      <p id="mensaje" role="status"></p>
+    </section>
+  </main>
+
+  <script type="module" src="./controlador.js"></script>
 </body>
 </html>
