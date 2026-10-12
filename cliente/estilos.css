@@ -1,0 +1,174 @@
+/* Incluye bordes y relleno dentro del tamaño de cada elemento. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #fce3ed, #faf3f8);
+  color: #554650;
+  min-height: 100vh;
+}
+
+/* Cabecera de la aplicación. */
+.cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 7%;
+  background-color: #fff9fc;
+  border-bottom: 1px solid #efd3e0;
+}
+
+.cabecera h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #a64e79;
+}
+
+.cabecera p {
+  margin: 0;
+  padding: 10px 18px;
+  border: 1px solid #efcbdc;
+  border-radius: 24px;
+  background-color: #fbe9f1;
+  color: #87395f;
+}
+
+main {
+  padding: 0 20px;
+}
+
+/* Tarjeta que contiene los formularios. */
+.tarjeta {
+  max-width: 650px;
+  margin: 60px auto;
+  padding: 44px;
+  background-color: white;
+  border: 1px solid #efd8e3;
+  border-radius: 26px;
+  box-shadow: 0 16px 40px rgba(145, 75, 110, 0.08);
+}
+
+.tarjeta h2 {
+  margin: 0 0 22px;
+  font-size: 32px;
+  color: #9d416e;
+}
+
+.tarjeta h3 {
+  margin: 28px 0;
+  font-size: 22px;
+}
+
+/* Botones para elegir entre inicio de sesión y registro. */
+.pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+button {
+  padding: 18px 24px;
+  border: none;
+  border-radius: 15px;
+  background-color: #a64e79;
+  color: white;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #913d66;
+}
+
+/* Etiquetas y campos de los formularios. */
+label {
+  display: block;
+  margin-top: 28px;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+input {
+  display: block;
+  width: 100%;
+  padding: 18px;
+  border: 1px solid #edbfd4;
+  border-radius: 15px;
+  background-color: #fff9fc;
+  color: #554650;
+  font: inherit;
+}
+
+/* Resalta el elemento al navegar con el teclado. */
+input:focus-visible,
+button:focus-visible {
+  outline: 3px solid #87395f;
+  outline-offset: 3px;
+}
+
+/* Separación de los botones de envío respecto al último campo. */
+form button[type="submit"] {
+  display: block;
+  margin-top: 20px;
+}
+
+/* Entrar utiliza un rosa más claro que las pestañas. */
+#formulario-login button[type="submit"] {
+  background-color: #df9fbc;
+  color: #492337;
+}
+
+#formulario-login button[type="submit"]:hover {
+  background-color: #d58bad;
+}
+
+/* Mensajes de resultado de las acciones. */
+#mensaje {
+  margin-top: 20px;
+  line-height: 1.5;
+}
+
+#mensaje:empty {
+  display: none;
+}
+
+/* Conserva la ocultación de los formularios con hidden. */
+[hidden] {
+  display: none !important;
+}
+
+/* Ajustes para pantallas pequeñas. */
+@media (max-width: 600px) {
+  .cabecera {
+    flex-wrap: wrap;
+    padding: 20px;
+  }
+
+  .cabecera h1 {
+    font-size: 23px;
+  }
+
+  .tarjeta {
+    margin: 30px auto;
+    padding: 24px;
+  }
+
+  .tarjeta h2 {
+    font-size: 26px;
+  }
+
+  .pestanas button {
+    flex: 1;
+    padding: 15px 12px;
+  }
+}
+/* La opción seleccionada conserva el rosa oscuro. */
+.pestanas button[aria-pressed="false"] {
+  background-color: #fbe9f1;
+  color: #87395f;
+}
