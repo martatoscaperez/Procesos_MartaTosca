@@ -161,7 +161,78 @@ app.get('/api/confirmar', (req, res) => {
     res.status(400).type('text').send(error.message);
   }
 });
+// GET: consulta el usuario de la sesión actual.
+app.get('/api/sesion', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+
+  if (!req.session.email) {
+    return res.status(401).json({
+      error: 'Debes iniciar sesión.'
+    });
+  }
+
+  let usuario;
+
+  try {
+    usuario = servicioUsuarios.obtenerUsuarioActivo(req.session.email);
+  } catch (error) {
+    // Invalidamos la sesión si la cuenta ya no está activa.
+    return req.session.destroy((errorSesion) => {
+      if (errorSesion) {
+        return res.status(500).json({
+          error: 'No se pudo invalidar la sesión.'
+        });
+      }
+
+      res.clearCookie('connect.sid', { path: '/' });
+
+      res.status(401).json({
+        error: 'La sesión ya no es válida. Inicia sesión de nuevo.'
+      });
+    });
+  }
+
+  res.json(usuario);
+});
+// POST: elimina la sesión del servidor y la cookie del navegador.
+app.post('/api/logout', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+
+  req.session.destroy((error) => {
+    if (error) {
+      return res.status(500).json({
+        error: 'No se pudo cerrar la sesión.'
+      });
+    }
+
+    res.clearCookie('connect.sid', { path: '/' });
+
+    res.json({
+      mensaje: 'Sesión cerrada.'
+    });
+  });
+});
+// Crea una cuenta activa de prueba solo en desarrollo local.
+if (
+  process.env.NODE_ENV === 'development' &&
+  process.env.CREAR_USUARIO_PRUEBA === 'true'
+) {
+  const email = process.env.USUARIO_PRUEBA_EMAIL;
+  const clave = process.env.USUARIO_PRUEBA_CLAVE;
+
+  await servicioUsuarios.agregarUsuario(
+    email,
+    'Usuario de prueba',
+    clave
+  );
+
+  const token = servicioUsuarios.generarConfirmacion(email);
+  servicioUsuarios.confirmarUsuario(email, token);
+
+  console.log('Cuenta de prueba preparada.');
+}
 // Arrancamos el servidor para escuchar peticiones.
-app.listen(puerto, () => {
-  console.log(`Servidor en http://localhost:${puerto}`);
+const servidor = app.listen(puerto, () => {
+  const puertoAsignado = servidor.address().port;
+  console.log(`Servidor en http://localhost:${puertoAsignado}`);
 });

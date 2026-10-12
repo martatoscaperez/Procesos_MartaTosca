@@ -184,7 +184,16 @@ export function crearServicioUsuarios(
 
       return obtenerDatosPublicos(usuarioActual);
     },
+    // Devuelve los datos públicos de una cuenta activa.
+    obtenerUsuarioActivo(email) {
+      const usuario = repositorio.buscarPorEmail(normalizarEmail(email));
 
+      if (!usuario || usuario.estado !== 'activo') {
+        throw new Error('La cuenta no está activa.');
+    }
+
+      return obtenerDatosPublicos(usuario);
+  },
     // Nunca devuelve hashes ni códigos de confirmación al cliente.
     obtenerUsuarios() {
       return repositorio.listar().map(obtenerDatosPublicos);

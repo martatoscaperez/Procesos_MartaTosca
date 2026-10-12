@@ -3,7 +3,9 @@
 import {
   consultarEstado,
   registrarUsuario,
-  iniciarSesion
+  iniciarSesion,
+  consultarSesion,
+  cerrarSesion
 } from './comunicacion/rest.js';
 
 // Localizamos los elementos de la página.
@@ -13,6 +15,10 @@ const botonRegistro = document.getElementById('mostrar-registro');
 const formularioLogin = document.getElementById('formulario-login');
 const formularioRegistro = document.getElementById('formulario-registro');
 const mensaje = document.getElementById('mensaje');
+const panelSesion = document.getElementById('panel-sesion');
+const usuarioConectado = document.getElementById('usuario-conectado');
+const botonCerrarSesion = document.getElementById('cerrar-sesion');
+const pestanas = document.querySelector('.pestanas');
 
 // Consulta el servidor y muestra si está disponible.
 async function mostrarEstadoServidor() {
@@ -34,6 +40,34 @@ function cambiarFormulario(mostrarLogin) {
   botonRegistro.setAttribute('aria-pressed', String(!mostrarLogin));
 
   mensaje.textContent = '';
+}
+
+// Actualiza la interfaz según haya sesión o no.
+function mostrarSesion(usuario) {
+  const conectado = usuario !== null;
+
+  panelSesion.hidden = !conectado;
+  pestanas.hidden = conectado;
+  formularioLogin.hidden = conectado;
+  formularioRegistro.hidden = true;
+
+  usuarioConectado.textContent = conectado
+    ? `Conectado como ${usuario.nombre}.`
+    : '';
+
+  if (!conectado) {
+    cambiarFormulario(true);
+  }
+}
+
+// Recupera la sesión cuando se carga o se recarga la página.
+async function recuperarSesion() {
+  try {
+    const usuario = await consultarSesion();
+    mostrarSesion(usuario);
+  } catch (error) {
+    mensaje.textContent = error.message;
+  }
 }
 
 // Asociamos cada botón con su acción.
@@ -63,11 +97,29 @@ formularioLogin.addEventListener('submit', async (evento) => {
     const usuario = await iniciarSesion(email, clave);
 
     formularioLogin.reset();
+    mostrarSesion(usuario);
     mensaje.textContent = `Has iniciado sesión como ${usuario.nombre}.`;
   } catch (error) {
     mensaje.textContent = error.message;
   } finally {
     botonEnviar.disabled = false;
+  }
+});
+
+// Cierra la sesión y vuelve al formulario de login.
+botonCerrarSesion.addEventListener('click', async () => {
+  botonCerrarSesion.disabled = true;
+  mensaje.textContent = 'Cerrando sesión…';
+
+  try {
+    await cerrarSesion();
+
+    mostrarSesion(null);
+    mensaje.textContent = 'Sesión cerrada.';
+  } catch (error) {
+    mensaje.textContent = error.message;
+  } finally {
+    botonCerrarSesion.disabled = false;
   }
 });
 
@@ -113,5 +165,6 @@ formularioRegistro.addEventListener('submit', async (evento) => {
   }
 });
 
-// Comprobamos el estado al cargar la página.
+// Comprobamos el servidor y recuperamos la sesión al cargar la página.
 mostrarEstadoServidor();
+recuperarSesion();
