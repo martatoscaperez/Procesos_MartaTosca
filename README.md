@@ -182,3 +182,18 @@ en la base de datos del despliegue.
 
 Las credenciales de evaluación se comunicarán por separado,
 sin publicarlas en el repositorio.
+
+## Administrador
+
+El primer administrador se crea mediante un script de inicialización.
+
+Configurar en `.env`:
+
+- `ADMIN_EMAIL`
+- `ADMIN_NOMBRE`
+- `ADMIN_CLAVE`
+
+Ejecutar:
+
+```powershell
+npm.cmd run crear-admin
