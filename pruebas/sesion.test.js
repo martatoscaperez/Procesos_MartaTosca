@@ -12,7 +12,7 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
     env: {
       ...process.env,
       PORT: '0',
-      NODE_ENV: 'development',
+      NODE_ENV: 'test',
       SESSION_SECRET: randomBytes(32).toString('hex'),
       CREAR_USUARIO_PRUEBA: 'true',
       USUARIO_PRUEBA_EMAIL: 'sesion@example.com',

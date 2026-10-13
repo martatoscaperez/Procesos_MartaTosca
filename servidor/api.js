@@ -6,14 +6,29 @@ import {
   obtenerEstadoAplicacion,
   crearServicioUsuarios
 } from './logica.js';
+import { crearRepositorioUsuarios } from './datos.js';
+import { crearConexion } from './conexion.js';
+import { crearRepositorioUsuariosPostgres } from './datos-postgres.js';
 import { fileURLToPath } from 'node:url';
 
 // Creamos la aplicación Express.
 const app = express();
 
-// Un único servicio conserva los usuarios entre peticiones.
-// Al reiniciar el servidor, los datos en memoria se pierden.
-const servicioUsuarios = crearServicioUsuarios();
+// Las pruebas usan memoria; la aplicación utiliza PostgreSQL.
+const usarMemoria = process.env.NODE_ENV === 'test';
+
+const conexion = usarMemoria ? null : crearConexion();
+
+const repositorioUsuarios = usarMemoria
+  ? crearRepositorioUsuarios()
+  : crearRepositorioUsuariosPostgres(conexion);
+
+// Comprobamos la conexión y la existencia de la tabla antes de arrancar.
+if (conexion) {
+  await conexion.query('SELECT email FROM usuarios LIMIT 1');
+}
+
+const servicioUsuarios = crearServicioUsuarios(repositorioUsuarios);
 
 // Usamos el puerto del entorno o el 3000 por defecto.
 const puerto = process.env.PORT || 3000;
@@ -51,7 +66,7 @@ const carpetaCliente = fileURLToPath(
 app.use(express.static(carpetaCliente));
 
 // Exige una sesión válida y consulta el estado actual del usuario.
-function exigirSesion(req, res, next) {
+async function exigirSesion(req, res, next) {
   res.set('Cache-Control', 'no-store');
 
   if (!req.session.email) {
@@ -61,7 +76,9 @@ function exigirSesion(req, res, next) {
   }
 
   try {
-    req.usuario = servicioUsuarios.obtenerUsuarioActivo(req.session.email);
+    req.usuario = await servicioUsuarios.obtenerUsuarioActivo(
+      req.session.email
+    );
   } catch (error) {
     return req.session.destroy((errorSesion) => {
       if (errorSesion) {
@@ -111,7 +128,11 @@ function permitirEliminarCuenta(req, res, next) {
 // GET: consulta el estado de la aplicación.
 app.get('/api/estado', (req, res) => {
   const estado = obtenerEstadoAplicacion();
-  res.json(estado);
+
+  res.json({
+    ...estado,
+    persistenciaConfigurada: !usarMemoria
+  });
 });
 
 // POST: recibe los datos del registro y delega las reglas en la lógica.
@@ -119,14 +140,12 @@ app.post('/api/usuarios', async (req, res) => {
   try {
     const { email, nombre, clave } = req.body ?? {};
 
-    // Esperamos a que la lógica calcule el hash y guarde la cuenta.
     const usuario = await servicioUsuarios.agregarUsuario(
       email,
       nombre,
       clave
     );
 
-    // La lógica devuelve datos públicos, sin contraseña ni hash.
     res.status(201).json(usuario);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -138,8 +157,8 @@ app.get(
   '/api/usuarios',
   exigirSesion,
   exigirAdministrador,
-  (req, res) => {
-    const usuarios = servicioUsuarios.obtenerUsuarios();
+  async (req, res) => {
+    const usuarios = await servicioUsuarios.obtenerUsuarios();
     res.json(usuarios);
   }
 );
@@ -149,10 +168,10 @@ app.get(
   '/api/usuarios/:email/activo',
   exigirSesion,
   exigirAdministrador,
-  (req, res) => {
+  async (req, res) => {
     try {
       const email = req.params.email;
-      const activo = servicioUsuarios.usuarioActivo(email);
+      const activo = await servicioUsuarios.usuarioActivo(email);
 
       res.json({ activo });
     } catch (error) {
@@ -166,10 +185,10 @@ app.delete(
   '/api/usuarios/:email',
   exigirSesion,
   permitirEliminarCuenta,
-  (req, res) => {
+  async (req, res) => {
     try {
       const email = req.params.email;
-      const usuario = servicioUsuarios.eliminarUsuario(email);
+      const usuario = await servicioUsuarios.eliminarUsuario(email);
 
       res.json(usuario);
     } catch (error) {
@@ -214,14 +233,14 @@ app.post('/api/login', async (req, res) => {
 });
 
 // GET: confirma una cuenta mediante el código recibido en el enlace.
-app.get('/api/confirmar', (req, res) => {
+app.get('/api/confirmar', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.set('Referrer-Policy', 'no-referrer');
 
   try {
     const { email, token } = req.query;
 
-    servicioUsuarios.confirmarUsuario(email, token);
+    await servicioUsuarios.confirmarUsuario(email, token);
 
     res.type('text').send(
       'Cuenta confirmada. Vuelve a la página principal para iniciar sesión.'
@@ -255,24 +274,36 @@ app.post('/api/logout', (req, res) => {
   });
 });
 
-// Crea una cuenta activa de prueba solo en desarrollo local.
+// Prepara una cuenta de prueba en desarrollo o en las pruebas.
 if (
-  process.env.NODE_ENV === 'development' &&
+  ['development', 'test'].includes(process.env.NODE_ENV) &&
   process.env.CREAR_USUARIO_PRUEBA === 'true'
 ) {
   const email = process.env.USUARIO_PRUEBA_EMAIL;
   const clave = process.env.USUARIO_PRUEBA_CLAVE;
 
-  await servicioUsuarios.agregarUsuario(
-    email,
-    'Usuario de prueba',
-    clave
+  if (typeof email !== 'string' || email.trim() === '') {
+    throw new Error('Falta configurar USUARIO_PRUEBA_EMAIL.');
+  }
+
+  const existente = await repositorioUsuarios.buscarPorEmail(
+    email.trim().toLowerCase()
   );
 
-  const token = servicioUsuarios.generarConfirmacion(email);
-  servicioUsuarios.confirmarUsuario(email, token);
+  if (!existente) {
+    await servicioUsuarios.agregarUsuario(
+      email,
+      'Usuario de prueba',
+      clave
+    );
 
-  console.log('Cuenta de prueba preparada.');
+    const token = await servicioUsuarios.generarConfirmacion(email);
+    await servicioUsuarios.confirmarUsuario(email, token);
+
+    console.log('Cuenta de prueba creada.');
+  } else {
+    console.log('La cuenta de prueba ya existe; se conserva su estado.');
+  }
 }
 
 // Arrancamos el servidor para escuchar peticiones.

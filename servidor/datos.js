@@ -11,6 +11,15 @@ export function crearRepositorioUsuarios() {
       // Devolvemos una copia para evitar cambios desde fuera.
       return usuario ? { ...usuario } : null;
     },
+        // Crea una cuenta sin sobrescribir una que ya existe.
+    insertar(usuario) {
+      if (usuarios.has(usuario.email)) {
+        throw new Error('Ya existe un usuario con ese email.');
+      }
+
+      usuarios.set(usuario.email, { ...usuario });
+      return { ...usuario };
+    },
 
     // Guarda un usuario nuevo o actualiza uno existente.
     guardar(usuario) {
