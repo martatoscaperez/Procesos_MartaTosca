@@ -197,3 +197,14 @@ Ejecutar:
 
 ```powershell
 npm.cmd run crear-admin
+
+## Registro de actividad
+
+`servidor/actividad.js` registra los eventos relevantes como líneas JSON
+con fecha y tipo de evento.
+
+Se registran altas de usuarios, login correcto o rechazado, logout,
+eliminaciones, sesiones invalidadas y accesos rechazados por permisos.
+
+Los logs aparecen en la terminal local y en Render → Logs.
+No se incluyen contraseñas, hashes, tokens, cookies ni cadenas de conexión.
