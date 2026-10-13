@@ -22,7 +22,6 @@ test('una cuenta nueva incluye nombre, rol y estado pendiente', async () => {
 });
 
 test('guarda un hash válido y no expone secretos en sus resultados', async () => {
-  // Conservamos el repositorio para inspeccionar los datos internos.
   const repositorio = crearRepositorioUsuarios();
   const servicio = crearServicioUsuarios(repositorio);
   const clave = 'ejemplo';
@@ -39,16 +38,12 @@ test('guarda un hash válido y no expone secretos en sus resultados', async () =
   assert.notEqual(interno.claveHash, clave);
   assert.equal(Object.hasOwn(interno, 'clave'), false);
 
-  // El hash corresponde a la contraseña correcta.
   assert.equal(await bcrypt.compare(clave, interno.claveHash), true);
-
-  // Una contraseña diferente no corresponde al hash.
   assert.equal(await bcrypt.compare('otra-clave', interno.claveHash), false);
 
-  const listado = servicio.obtenerUsuarios();
-  const eliminado = servicio.eliminarUsuario('marta@example.com');
+  const listado = await servicio.obtenerUsuarios();
+  const eliminado = await servicio.eliminarUsuario('marta@example.com');
 
-  // Alta, listado y eliminación devuelven solo datos públicos.
   for (const usuario of [creado, ...listado, eliminado]) {
     assert.deepEqual(Object.keys(usuario).sort(), [
       'email',
@@ -116,8 +111,10 @@ test('el listado incluye las cuentas creadas', async () => {
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
   await servicio.agregarUsuario('ana@example.com', 'Ana', 'ejemplo');
 
+  const usuarios = await servicio.obtenerUsuarios();
+
   assert.deepEqual(
-    servicio.obtenerUsuarios().map(usuario => usuario.email),
+    usuarios.map(usuario => usuario.email),
     ['marta@example.com', 'ana@example.com']
   );
 });
@@ -127,27 +124,30 @@ test('una cuenta pendiente no está activa', async () => {
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  assert.equal(servicio.usuarioActivo('marta@example.com'), false);
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), false);
 });
 
 test('eliminar una cuenta cambia su estado y deja de estar activa', async () => {
   const servicio = crearServicioUsuarios();
+
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
+  await servicio.eliminarUsuario('marta@example.com');
 
-  servicio.eliminarUsuario('marta@example.com');
+  const usuarios = await servicio.obtenerUsuarios();
 
-  assert.equal(servicio.obtenerUsuarios()[0].estado, 'eliminado');
-  assert.equal(servicio.usuarioActivo('marta@example.com'), false);
+  assert.equal(usuarios[0].estado, 'eliminado');
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), false);
 });
 
-test('rechaza eliminar una cuenta inexistente', () => {
+test('rechaza eliminar una cuenta inexistente', async () => {
   const servicio = crearServicioUsuarios();
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.eliminarUsuario('nadie@example.com'),
     /El usuario no existe/
   );
 });
+
 test('permite iniciar sesión a una cuenta activa con la clave correcta', async () => {
   const repositorio = crearRepositorioUsuarios();
   const servicio = crearServicioUsuarios(repositorio);
@@ -164,7 +164,6 @@ test('permite iniciar sesión a una cuenta activa con la clave correcta', async 
     'ejemplo'
   );
 
-  // El login devuelve datos públicos, sin contraseña ni hash.
   assert.deepEqual(resultado, {
     email: 'marta@example.com',
     nombre: 'Marta',
@@ -213,7 +212,7 @@ test('rechaza el login de una cuenta eliminada', async () => {
   const servicio = crearServicioUsuarios();
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
-  servicio.eliminarUsuario('marta@example.com');
+  await servicio.eliminarUsuario('marta@example.com');
 
   await assert.rejects(
     () => servicio.iniciarSesion('marta@example.com', 'ejemplo'),
@@ -246,21 +245,21 @@ test('rechaza una contraseña con contenido adicional tras los 72 bytes', async 
     /Email o contraseña incorrectos/
   );
 });
+
 test('confirmar una cuenta permite iniciar sesión', async () => {
   const repositorio = crearRepositorioUsuarios();
   const servicio = crearServicioUsuarios(repositorio);
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const token = servicio.generarConfirmacion(' MARTA@example.com ');
+  const token = await servicio.generarConfirmacion(' MARTA@example.com ');
   const interno = repositorio.buscarPorEmail('marta@example.com');
 
-  // Almacenamos un hash, nunca el código original.
   assert.match(token, /^[a-f0-9]{64}$/);
   assert.equal(typeof interno.confirmacionHash, 'string');
   assert.notEqual(interno.confirmacionHash, token);
 
-  const confirmado = servicio.confirmarUsuario(
+  const confirmado = await servicio.confirmarUsuario(
     ' MARTA@example.com ',
     token
   );
@@ -272,9 +271,10 @@ test('confirmar una cuenta permite iniciar sesión', async () => {
     estado: 'activo'
   });
 
-  assert.equal(servicio.usuarioActivo('marta@example.com'), true);
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), true);
 
   const actualizado = repositorio.buscarPorEmail('marta@example.com');
+
   assert.equal(Object.hasOwn(actualizado, 'confirmacionHash'), false);
   assert.equal(Object.hasOwn(actualizado, 'confirmacionCaduca'), false);
 
@@ -291,22 +291,22 @@ test('rechaza un código incorrecto sin activar la cuenta', async () => {
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const token = servicio.generarConfirmacion('marta@example.com');
+  const token = await servicio.generarConfirmacion('marta@example.com');
 
-  // Cambiamos un carácter manteniendo el formato del código.
   const incorrecto =
     (token[0] === 'a' ? 'b' : 'a') + token.slice(1);
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.confirmarUsuario('marta@example.com', incorrecto),
     /no es válido o ha caducado/
   );
 
-  assert.equal(servicio.usuarioActivo('marta@example.com'), false);
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), false);
 
   // El intento incorrecto no invalida el código original.
-  servicio.confirmarUsuario('marta@example.com', token);
-  assert.equal(servicio.usuarioActivo('marta@example.com'), true);
+  await servicio.confirmarUsuario('marta@example.com', token);
+
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), true);
 });
 
 test('rechaza un código caducado', async () => {
@@ -315,19 +315,19 @@ test('rechaza un código caducado', async () => {
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const token = servicio.generarConfirmacion('marta@example.com');
+  const token = await servicio.generarConfirmacion('marta@example.com');
 
   // Simulamos la caducidad sin esperar una hora.
   const usuario = repositorio.buscarPorEmail('marta@example.com');
   usuario.confirmacionCaduca = Date.now() - 1;
   repositorio.guardar(usuario);
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.confirmarUsuario('marta@example.com', token),
     /no es válido o ha caducado/
   );
 
-  assert.equal(servicio.usuarioActivo('marta@example.com'), false);
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), false);
 });
 
 test('un código de confirmación solo puede usarse una vez', async () => {
@@ -335,10 +335,10 @@ test('un código de confirmación solo puede usarse una vez', async () => {
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const token = servicio.generarConfirmacion('marta@example.com');
-  servicio.confirmarUsuario('marta@example.com', token);
+  const token = await servicio.generarConfirmacion('marta@example.com');
+  await servicio.confirmarUsuario('marta@example.com', token);
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.confirmarUsuario('marta@example.com', token),
     /no es válido o ha caducado/
   );
@@ -349,18 +349,19 @@ test('generar otro código invalida el anterior', async () => {
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const anterior = servicio.generarConfirmacion('marta@example.com');
-  const nuevo = servicio.generarConfirmacion('marta@example.com');
+  const anterior = await servicio.generarConfirmacion('marta@example.com');
+  const nuevo = await servicio.generarConfirmacion('marta@example.com');
 
   assert.notEqual(anterior, nuevo);
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.confirmarUsuario('marta@example.com', anterior),
     /no es válido o ha caducado/
   );
 
-  servicio.confirmarUsuario('marta@example.com', nuevo);
-  assert.equal(servicio.usuarioActivo('marta@example.com'), true);
+  await servicio.confirmarUsuario('marta@example.com', nuevo);
+
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), true);
 });
 
 test('rechaza confirmar una cuenta eliminada', async () => {
@@ -368,60 +369,61 @@ test('rechaza confirmar una cuenta eliminada', async () => {
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const token = servicio.generarConfirmacion('marta@example.com');
-  servicio.eliminarUsuario('marta@example.com');
+  const token = await servicio.generarConfirmacion('marta@example.com');
+  await servicio.eliminarUsuario('marta@example.com');
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.confirmarUsuario('marta@example.com', token),
     /no es válido o ha caducado/
   );
 
-  assert.equal(servicio.usuarioActivo('marta@example.com'), false);
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), false);
 });
 
 test('rechaza códigos con formato incorrecto', async () => {
   const servicio = crearServicioUsuarios();
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
-  servicio.generarConfirmacion('marta@example.com');
+  await servicio.generarConfirmacion('marta@example.com');
 
   for (const token of [undefined, null, '', 'incorrecto', 123]) {
-    assert.throws(
+    await assert.rejects(
       () => servicio.confirmarUsuario('marta@example.com', token),
       /no es válido o ha caducado/
     );
   }
 
-  assert.equal(servicio.usuarioActivo('marta@example.com'), false);
+  assert.equal(await servicio.usuarioActivo('marta@example.com'), false);
 });
 
 test('rechaza generar un código para una cuenta inexistente o activa', async () => {
   const servicio = crearServicioUsuarios();
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.generarConfirmacion('nadie@example.com'),
     /La cuenta no está pendiente de confirmación/
   );
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const token = servicio.generarConfirmacion('marta@example.com');
-  servicio.confirmarUsuario('marta@example.com', token);
+  const token = await servicio.generarConfirmacion('marta@example.com');
+  await servicio.confirmarUsuario('marta@example.com', token);
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.generarConfirmacion('marta@example.com'),
     /La cuenta no está pendiente de confirmación/
   );
 });
+
 test('consulta una cuenta activa y devuelve solo datos públicos', async () => {
   const servicio = crearServicioUsuarios();
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const token = servicio.generarConfirmacion('marta@example.com');
-  servicio.confirmarUsuario('marta@example.com', token);
+  const token = await servicio.generarConfirmacion('marta@example.com');
+  await servicio.confirmarUsuario('marta@example.com', token);
 
-  const usuario = servicio.obtenerUsuarioActivo(' MARTA@example.com ');
+  const usuario = await servicio.obtenerUsuarioActivo(' MARTA@example.com ');
 
   assert.deepEqual(usuario, {
     email: 'marta@example.com',
@@ -436,16 +438,16 @@ test('rechaza consultar como activa una cuenta pendiente', async () => {
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.obtenerUsuarioActivo('marta@example.com'),
     /La cuenta no está activa/
   );
 });
 
-test('rechaza consultar como activa una cuenta inexistente', () => {
+test('rechaza consultar como activa una cuenta inexistente', async () => {
   const servicio = crearServicioUsuarios();
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.obtenerUsuarioActivo('nadie@example.com'),
     /La cuenta no está activa/
   );
@@ -456,13 +458,13 @@ test('rechaza consultar una cuenta eliminada después del login', async () => {
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
-  const token = servicio.generarConfirmacion('marta@example.com');
-  servicio.confirmarUsuario('marta@example.com', token);
+  const token = await servicio.generarConfirmacion('marta@example.com');
+  await servicio.confirmarUsuario('marta@example.com', token);
 
   await servicio.iniciarSesion('marta@example.com', 'ejemplo');
-  servicio.eliminarUsuario('marta@example.com');
+  await servicio.eliminarUsuario('marta@example.com');
 
-  assert.throws(
+  await assert.rejects(
     () => servicio.obtenerUsuarioActivo('marta@example.com'),
     /La cuenta no está activa/
   );
