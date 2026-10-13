@@ -4,9 +4,8 @@ import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => {
-  // Arrancamos un servidor separado con datos de prueba.
-  // No leemos .env ni utilizamos las credenciales personales.
+test('la API mantiene la sesión y aplica los permisos de usuarios y administrador', async (t) => {
+  // Arrancamos un servidor independiente con datos ficticios en memoria.
   const proceso = spawn(process.execPath, ['servidor/api.js'], {
     cwd: fileURLToPath(new URL('../', import.meta.url)),
     env: {
@@ -16,7 +15,8 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
       SESSION_SECRET: randomBytes(32).toString('hex'),
       CREAR_USUARIO_PRUEBA: 'true',
       USUARIO_PRUEBA_EMAIL: 'sesion@example.com',
-      USUARIO_PRUEBA_CLAVE: 'clave-ficticia-de-prueba'
+      USUARIO_PRUEBA_CLAVE: 'clave-ficticia-de-prueba',
+      CREAR_ADMIN_PRUEBA: 'true'
     },
     stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -88,7 +88,8 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
   // Una petición sin cookie no tiene sesión.
   const sinSesion = await fetch(`${baseUrl}/api/sesion`);
   assert.equal(sinSesion.status, 401);
-    // Las rutas protegidas rechazan peticiones sin sesión.
+
+  // Las rutas protegidas rechazan peticiones sin sesión.
   for (const [ruta, metodo] of [
     ['/api/usuarios', 'GET'],
     ['/api/usuarios/sesion@example.com/activo', 'GET'],
@@ -100,6 +101,7 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
 
     assert.equal(respuesta.status, 401);
   }
+
   // Las credenciales incorrectas no crean una sesión.
   const incorrecto = await fetch(`${baseUrl}/api/login`, {
     method: 'POST',
@@ -139,9 +141,9 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
   assert.ok(cookieCompleta);
   assert.match(cookieCompleta, /HttpOnly/i);
 
-  // Enviamos solo el nombre y el valor de la cookie.
   const cookie = cookieCompleta.split(';')[0];
-    // El usuario normal no puede realizar consultas de administrador.
+
+  // El usuario normal no puede realizar consultas de administrador.
   for (const ruta of [
     '/api/usuarios',
     '/api/usuarios/sesion@example.com/activo'
@@ -218,13 +220,14 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
     /connect\.sid=;/
   );
 
-  // Incluso reutilizando la cookie anterior, la sesión ya no es válida.
+  // La cookie anterior deja de funcionar después del logout.
   const despuesDelLogout = await fetch(`${baseUrl}/api/sesion`, {
     headers: { Cookie: cookie }
   });
 
   assert.equal(despuesDelLogout.status, 401);
-    // Volvemos a entrar para comprobar la eliminación de la propia cuenta.
+
+  // Volvemos a entrar para comprobar la eliminación de la propia cuenta.
   const segundoLogin = await fetch(`${baseUrl}/api/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -270,4 +273,99 @@ test('la API mantiene la sesión y la invalida al cerrar sesión', async (t) => 
   });
 
   assert.equal(loginEliminado.status, 401);
+
+  // El administrador puede iniciar sesión.
+  const loginAdmin = await fetch(`${baseUrl}/api/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'admin-prueba@example.com',
+      clave: 'clave-ficticia-admin'
+    })
+  });
+
+  assert.equal(loginAdmin.status, 200);
+
+  const admin = await loginAdmin.json();
+  assert.equal(admin.rol, 'administrador');
+
+  const cookieAdminCompleta = loginAdmin.headers.get('set-cookie');
+  assert.ok(cookieAdminCompleta);
+
+  const cookieAdmin = cookieAdminCompleta.split(';')[0];
+
+  // El administrador puede listar las cuentas.
+  const listadoAdmin = await fetch(`${baseUrl}/api/usuarios`, {
+    headers: { Cookie: cookieAdmin }
+  });
+
+  assert.equal(listadoAdmin.status, 200);
+
+  const usuarios = await listadoAdmin.json();
+
+  assert.ok(
+    usuarios.some(usuario => usuario.email === 'otra@example.com')
+  );
+
+  // El listado solo contiene datos públicos.
+  for (const cuenta of usuarios) {
+    assert.deepEqual(Object.keys(cuenta).sort(), [
+      'email',
+      'estado',
+      'nombre',
+      'rol'
+    ]);
+  }
+
+  // Puede consultar el estado de otra cuenta.
+  const estadoOtra = await fetch(
+    `${baseUrl}/api/usuarios/otra@example.com/activo`,
+    {
+      headers: { Cookie: cookieAdmin }
+    }
+  );
+
+  assert.equal(estadoOtra.status, 200);
+  assert.deepEqual(await estadoOtra.json(), { activo: false });
+
+  // Puede consultar una cuenta activa.
+  const estadoAdmin = await fetch(
+    `${baseUrl}/api/usuarios/admin-prueba@example.com/activo`,
+    {
+      headers: { Cookie: cookieAdmin }
+    }
+  );
+
+  assert.equal(estadoAdmin.status, 200);
+  assert.deepEqual(await estadoAdmin.json(), { activo: true });
+
+  // Puede eliminar una cuenta ajena.
+  const eliminarComoAdmin = await fetch(
+    `${baseUrl}/api/usuarios/otra@example.com`,
+    {
+      method: 'DELETE',
+      headers: { Cookie: cookieAdmin }
+    }
+  );
+
+  assert.equal(eliminarComoAdmin.status, 200);
+
+  const eliminadaPorAdmin = await eliminarComoAdmin.json();
+  assert.equal(eliminadaPorAdmin.email, 'otra@example.com');
+  assert.equal(eliminadaPorAdmin.estado, 'eliminado');
+
+  // Comprobamos que el cambio quedó guardado.
+  const listadoFinal = await fetch(`${baseUrl}/api/usuarios`, {
+    headers: { Cookie: cookieAdmin }
+  });
+
+  assert.equal(listadoFinal.status, 200);
+
+  const usuariosFinales = await listadoFinal.json();
+  const otraCuenta = usuariosFinales.find(
+    cuenta => cuenta.email === 'otra@example.com'
+  );
+
+  assert.ok(otraCuenta);
+  assert.equal(otraCuenta.estado, 'eliminado');
 });

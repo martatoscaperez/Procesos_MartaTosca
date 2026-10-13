@@ -305,6 +305,27 @@ if (
     console.log('La cuenta de prueba ya existe; se conserva su estado.');
   }
 }
+// Crea un administrador ficticio solo en las pruebas en memoria.
+if (
+  usarMemoria &&
+  process.env.CREAR_ADMIN_PRUEBA === 'true'
+) {
+  const email = 'admin-prueba@example.com';
+
+  await servicioUsuarios.agregarUsuario(
+    email,
+    'Administrador de prueba',
+    'clave-ficticia-admin'
+  );
+
+  const token = await servicioUsuarios.generarConfirmacion(email);
+  await servicioUsuarios.confirmarUsuario(email, token);
+
+  const usuario = await repositorioUsuarios.buscarPorEmail(email);
+  usuario.rol = 'administrador';
+
+  await repositorioUsuarios.guardar(usuario);
+}
 
 // Arrancamos el servidor para escuchar peticiones.
 const servidor = app.listen(puerto, () => {

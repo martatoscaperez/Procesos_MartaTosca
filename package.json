@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env servidor/api.js",
-    "test": "node --test"
+    "test": "node --test",
+    "crear-admin": "node --env-file-if-exists=.env scripts/crear-admin.js"
   },
   "repository": {
     "type": "git",
