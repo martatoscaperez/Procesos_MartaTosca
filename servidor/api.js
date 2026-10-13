@@ -10,6 +10,7 @@ import { crearRepositorioUsuarios } from './datos.js';
 import { crearConexion } from './conexion.js';
 import { crearRepositorioUsuariosPostgres } from './datos-postgres.js';
 import { fileURLToPath } from 'node:url';
+import { registrarActividad } from './actividad.js';
 
 // Creamos la aplicación Express.
 const app = express();
@@ -70,6 +71,10 @@ async function exigirSesion(req, res, next) {
   res.set('Cache-Control', 'no-store');
 
   if (!req.session.email) {
+    registrarActividad('acceso_sin_sesion', {
+      codigo: 401
+    });
+
     return res.status(401).json({
       error: 'Debes iniciar sesión.'
     });
@@ -89,6 +94,10 @@ async function exigirSesion(req, res, next) {
 
       res.clearCookie('connect.sid', { path: '/' });
 
+      registrarActividad('sesion_invalidada', {
+        codigo: 401
+      });
+
       res.status(401).json({
         error: 'La sesión ya no es válida.'
       });
@@ -101,6 +110,12 @@ async function exigirSesion(req, res, next) {
 // Solo permite continuar a un administrador.
 function exigirAdministrador(req, res, next) {
   if (req.usuario.rol !== 'administrador') {
+    registrarActividad('acceso_administrador_rechazado', {
+      email: req.usuario.email,
+      rol: req.usuario.rol,
+      codigo: 403
+    });
+
     return res.status(403).json({
       error: 'Esta operación requiere el rol de administrador.'
     });
@@ -117,6 +132,11 @@ function permitirEliminarCuenta(req, res, next) {
     req.usuario.rol !== 'administrador' &&
     req.usuario.email !== emailObjetivo
   ) {
+    registrarActividad('eliminacion_rechazada', {
+      email: req.usuario.email,
+      codigo: 403
+    });
+
     return res.status(403).json({
       error: 'Solo puedes eliminar tu propia cuenta.'
     });
@@ -145,6 +165,12 @@ app.post('/api/usuarios', async (req, res) => {
       nombre,
       clave
     );
+
+    registrarActividad('usuario_creado', {
+      email: usuario.email,
+      rol: usuario.rol,
+      estado: usuario.estado
+    });
 
     res.status(201).json(usuario);
   } catch (error) {
@@ -190,6 +216,11 @@ app.delete(
       const email = req.params.email;
       const usuario = await servicioUsuarios.eliminarUsuario(email);
 
+      registrarActividad('usuario_eliminado', {
+        email: usuario.email,
+        estado: usuario.estado
+      });
+
       res.json(usuario);
     } catch (error) {
       res.status(400).json({ error: error.message });
@@ -205,6 +236,10 @@ app.post('/api/login', async (req, res) => {
     const { email, clave } = req.body ?? {};
     usuario = await servicioUsuarios.iniciarSesion(email, clave);
   } catch (error) {
+    registrarActividad('login_rechazado', {
+      codigo: 401
+    });
+
     return res.status(401).json({ error: error.message });
   }
 
@@ -226,6 +261,11 @@ app.post('/api/login', async (req, res) => {
           error: 'No se pudo guardar la sesión.'
         });
       }
+
+      registrarActividad('login_correcto', {
+        email: usuario.email,
+        rol: usuario.rol
+      });
 
       res.json(usuario);
     });
@@ -259,6 +299,9 @@ app.get('/api/sesion', exigirSesion, (req, res) => {
 app.post('/api/logout', (req, res) => {
   res.set('Cache-Control', 'no-store');
 
+  // Conservamos el email antes de destruir la sesión.
+  const email = req.session.email;
+
   req.session.destroy((error) => {
     if (error) {
       return res.status(500).json({
@@ -267,6 +310,10 @@ app.post('/api/logout', (req, res) => {
     }
 
     res.clearCookie('connect.sid', { path: '/' });
+
+    registrarActividad('logout_correcto', {
+      email: email ?? null
+    });
 
     res.json({
       mensaje: 'Sesión cerrada.'
@@ -305,6 +352,7 @@ if (
     console.log('La cuenta de prueba ya existe; se conserva su estado.');
   }
 }
+
 // Crea un administrador ficticio solo en las pruebas en memoria.
 if (
   usarMemoria &&
