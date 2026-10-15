@@ -6,6 +6,7 @@ import {
   crearRepositorioUsuariosPostgres
 } from '../servidor/datos-postgres.js';
 import { crearServicioUsuarios } from '../servidor/logica.js';
+process.env.ALLOWED_DOMAINS = 'example.com';
 
 test(
   'PostgreSQL guarda usuarios, confirma cuentas y rechaza duplicados',

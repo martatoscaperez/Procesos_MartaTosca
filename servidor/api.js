@@ -4,7 +4,8 @@ import express from 'express';
 import session from 'express-session';
 import {
   obtenerEstadoAplicacion,
-  crearServicioUsuarios
+  crearServicioUsuarios,
+  dominioPermitido
 } from './logica.js';
 import { crearRepositorioUsuarios } from './datos.js';
 import { crearConexion } from './conexion.js';
@@ -36,6 +37,17 @@ const puerto = process.env.PORT || 3000;
 
 // Permite leer el cuerpo JSON de las peticiones.
 app.use(express.json());
+
+// Los errores de lectura del cuerpo también se devuelven en JSON.
+app.use((error, req, res, next) => {
+  if (error.status === 400) {
+    return res.status(400).json({
+      error: 'El cuerpo debe ser JSON válido.'
+    });
+  }
+
+  next(error);
+});
 
 // El secreto debe estar configurado antes de arrancar.
 const secretoSesion = process.env.SESSION_SECRET;
@@ -153,6 +165,16 @@ app.get('/api/estado', (req, res) => {
     ...estado,
     persistenciaConfigurada: !usarMemoria
   });
+});
+
+// POST público: comprueba el dominio sin requerir sesión.
+app.post('/api/prueba/dominio', (req, res) => {
+  try {
+    const permitido = dominioPermitido(req.body?.email);
+    res.status(200).json({ permitido });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 // POST: recibe los datos del registro y delega las reglas en la lógica.

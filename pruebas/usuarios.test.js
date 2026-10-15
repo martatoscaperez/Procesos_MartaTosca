@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import bcrypt from 'bcrypt';
 import { crearServicioUsuarios } from '../servidor/logica.js';
 import { crearRepositorioUsuarios } from '../servidor/datos.js';
-
+process.env.ALLOWED_DOMAINS = 'example.com';
 test('una cuenta nueva incluye nombre, rol y estado pendiente', async () => {
   const servicio = crearServicioUsuarios();
 

@@ -5,6 +5,27 @@ import {
   crearRepositorioUsuarios
 } from './datos.js';
 
+// Comprueba el dominio sin acceder a la base de datos.
+export function dominioPermitido(
+  email,
+  configuracion = process.env.ALLOWED_DOMAINS ?? ''
+) {
+  if (typeof email !== 'string' || !email.includes('@')) {
+    throw new Error('El email debe ser un texto que contenga @.');
+  }
+
+  const emailNormalizado = email.trim().toLowerCase();
+  const dominio = emailNormalizado.slice(
+    emailNormalizado.indexOf('@') + 1
+  );
+
+  const dominiosPermitidos = configuracion
+    .split(',')
+    .map(dominio => dominio.trim().toLowerCase())
+    .filter(dominio => dominio !== '');
+
+  return dominiosPermitidos.includes(dominio);
+}
 // Consulta el estado del almacenamiento.
 export function obtenerEstadoAplicacion() {
   const datos = obtenerEstadoDatos();
@@ -41,6 +62,9 @@ export function crearServicioUsuarios(
   return {
     async agregarUsuario(email, nombre, clave) {
       const emailNormalizado = normalizarEmail(email);
+       if (!dominioPermitido(emailNormalizado)) {
+        throw new Error('El dominio del email no está permitido.');
+      }
 
       if (typeof nombre !== 'string' || nombre.trim() === '') {
         throw new Error('El nombre es obligatorio.');

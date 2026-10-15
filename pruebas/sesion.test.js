@@ -12,6 +12,7 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
       ...process.env,
       PORT: '0',
       NODE_ENV: 'test',
+      ALLOWED_DOMAINS: 'example.com',
       SESSION_SECRET: randomBytes(32).toString('hex'),
       CREAR_USUARIO_PRUEBA: 'true',
       USUARIO_PRUEBA_EMAIL: 'sesion@example.com',
