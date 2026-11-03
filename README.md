@@ -85,8 +85,62 @@ Las consultas SQL están en la capa de datos.
 Una cuenta registrada comienza en estado `pendiente`.
 Las cuentas eliminadas no pueden iniciar sesión.
 
-El código incluye la lógica y la ruta de confirmación mediante token,
-pero el envío de correo no está conectado.
+El registro incorpora el envío de un enlace de confirmación mediante SMTP.
+La integración está preparada en código; falta configurar el proveedor y
+comprobar una entrega real en Cloud Run antes de dar esta parte por terminada.
+
+## Confirmación por correo (hito 4)
+
+1. El registro crea una cuenta pendiente y genera un token aleatorio.
+2. Se guarda únicamente el hash del token, con caducidad de una hora.
+3. El servicio SMTP envía un enlace a `/confirmar.html`. El usuario pulsa
+   «Confirmar cuenta» para activar la cuenta y luego inicia sesión.
+4. La confirmación consume el token. Un reenvío invalida el enlace anterior.
+
+El token viaja en el fragmento del enlace y se entrega a la API por POST,
+para que no aparezca en los logs HTTP de las peticiones de confirmación.
+La página elimina el fragmento del historial y no carga recursos externos.
+La ruta GET anterior se conserva por compatibilidad; los correos nuevos
+utilizan el flujo POST.
+
+Si falla SMTP después de crear la cuenta, la API devuelve `correoEnviado=false`.
+La interfaz explica cómo reenviar el mensaje desde el formulario de login,
+introduciendo el email y la contraseña de la cuenta pendiente.
+El reenvío limita a una solicitud por minuto e IP en la instancia actual.
+Este límite en memoria se reinicia al sustituir la instancia; no es un límite
+global del proveedor. Un envío aceptado por SMTP no garantiza entrega en la
+bandeja de entrada: revisar también spam y los eventos del proveedor.
+
+Configurar en `.env` y en Cloud Run:
+
+| Variable | Contenido |
+| --- | --- |
+| `APP_URL` | Origen público HTTPS, sin rutas; en local se admite `http://localhost:3000` |
+| `SMTP_HOST` | Servidor SMTP del proveedor |
+| `SMTP_PORT` | `587` con STARTTLS obligatorio o `465` con TLS desde el inicio |
+| `SMTP_USER` | Usuario SMTP facilitado por el proveedor |
+| `SMTP_PASS` | Contraseña o clave SMTP del proveedor |
+| `MAIL_FROM` | Dirección de remitente verificada en el proveedor |
+
+En producción, `APP_URL` es
+`https://procesos-martatosca-569228981488.europe-west1.run.app`.
+Sin configuración válida, el registro y el reenvío devuelven 503 antes de
+crear una cuenta; el login de las cuentas existentes sigue disponible.
+Los errores internos SMTP no se devuelven al navegador ni se escriben en logs.
+No se deben guardar estas credenciales en Git ni adjuntarlas en capturas.
+
+Nodemailer permite cambiar de proveedor mediante estas variables:
+[documentación SMTP](https://nodemailer.com/smtp).
+Como opción de configuración puede usarse
+[Brevo SMTP](https://help.brevo.com/hc/en-us/articles/7924908994450-Send-transactional-emails-using-Brevo-SMTP):
+host `smtp-relay.brevo.com`, puerto `587`, login indicado en su panel y
+una clave SMTP, distinta de una clave API. Primero verificar el remitente.
+
+Antes de integrar y desplegar, preparar las variables del proveedor.
+Después registrar una cuenta real de un dominio permitido, confirmar que
+recibe el correo, activarla, comprobar login y rechazar el enlace reutilizado.
+Esta comprobación real queda pendiente; las pruebas automatizadas utilizan
+transportes simulados y no envían correos a terceros.
 
 ## Ejecutar en local
 
@@ -222,7 +276,9 @@ con `NODE_ENV=test`.
 | `GET /api/usuarios` | Solo administrador; lista las cuentas |
 | `GET /api/usuarios/:email/activo` | Solo administrador; consulta si una cuenta está activa |
 | `DELETE /api/usuarios/:email` | Administrador o dueño de la cuenta; cambia su estado a eliminado |
-| `GET /api/confirmar` | Valida email y token; el envío de correo está pendiente |
+| `POST /api/confirmar` | Valida email y token del enlace y activa la cuenta |
+| `POST /api/confirmacion/reenviar` | Reenvía el correo de una cuenta pendiente con su email y contraseña |
+| `GET /api/confirmar` | Ruta de confirmación anterior, conservada por compatibilidad |
 
 Una cuenta está activa cuando su estado es `activo`.
 Esto no significa que esté conectada en ese momento.
@@ -297,13 +353,14 @@ Para ejecutar únicamente la prueba de PostgreSQL:
 node --env-file=.env --test pruebas/postgres.test.js
 ```
 
-Hay 40 pruebas:
+Hay 46 pruebas:
 
 - 30 de lógica de usuarios.
 - Una prueba HTTP con comprobaciones de sesión, logout y permisos.
 - Una prueba de integración con PostgreSQL.
 - Dos pruebas del formato de los logs y la exclusión de campos secretos.
 - Seis pruebas de la variante de dominios permitidos.
+- Seis pruebas de correo y confirmación, incluidos fallos SMTP y reenvíos.
 
 Se comprueban altas, duplicados, validaciones, hashes, estados de cuenta,
 confirmación, login, consulta de sesión, logout, eliminación y permisos
@@ -332,7 +389,7 @@ Se utiliza GitHub Flow:
 `.github/workflows/ci.yml` ejecuta las pruebas en cada pull request
 y en los cambios de main.
 
-El CI prepara una base PostgreSQL temporal y ejecuta las 40 pruebas.
+El CI prepara una base PostgreSQL temporal y ejecuta las 46 pruebas.
 No necesita las credenciales de Neon.
 
 ## Despliegue
@@ -369,9 +426,8 @@ Con mínimo 0, el primer acceso después de un periodo de inactividad puede
 tardar más y puede ser necesario volver a iniciar sesión.
 El login del administrador se ha comprobado manualmente en Cloud Run.
 
-Render se conserva temporalmente como despliegue anterior. El archivo
-`render.yaml` documenta esa configuración. Se suspenderá su servicio tras
-verificar el despliegue automático de un cambio en Google Cloud.
+Render está suspendido tras verificar el despliegue automático del PR #16
+en Google Cloud. El archivo `render.yaml` conserva la configuración anterior.
 Neon debe mantenerse activo porque sigue siendo la base de datos principal.
 
 La aplicación publicada funciona independientemente del servidor local.
@@ -388,5 +444,6 @@ y [sesiones en Cloud Run](https://docs.cloud.google.com/run/docs/configuring/ses
 - Hito 3: persistencia en PostgreSQL, secretos externos al código,
   administrador, permisos y registro de actividad.
 
-El envío de correo de confirmación y el inicio de sesión mediante OAuth
-corresponden al hito 4 y quedan fuera del alcance de esta entrega.
+El hito 4 está en desarrollo: la confirmación por correo está implementada
+en código y pendiente de configurar y verificar con un proveedor real.
+El inicio de sesión mediante OAuth sigue pendiente.

@@ -1,5 +1,26 @@
 // Capa de comunicación: realiza peticiones a la API.
 // No modifica elementos de la interfaz.
+async function enviarConfirmacion(ruta, datos) {
+  const respuesta = await fetch(ruta, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos)
+  });
+  const resultado = await respuesta.json();
+  if (!respuesta.ok) {
+    throw new Error(resultado.error || 'No se pudo completar la confirmación.');
+  }
+  return resultado;
+}
+
+export function confirmarCuenta(email, token) {
+  return enviarConfirmacion('/api/confirmar', { email, token });
+}
+
+export function reenviarConfirmacion(email, clave) {
+  return enviarConfirmacion('/api/confirmacion/reenviar', { email, clave });
+}
+
 export async function consultarEstado() {
   const respuesta = await fetch('/api/estado');
 
