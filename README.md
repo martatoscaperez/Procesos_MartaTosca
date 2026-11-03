@@ -1,16 +1,23 @@
-# Piso compartido
+# Proyecto de Procesos
 
 Proyecto individual de Procesos de Ingeniería del Software,
 curso 2026–2027.
 
-Aplicación web para organizar la vida en un piso compartido.
+Base de una aplicación web con gestión de usuarios y autenticación.
+La temática y el nombre definitivo se elegirán después de completar el hito 4.
+Hasta entonces, el desarrollo se centra en las funcionalidades comunes:
+registro, sesiones, roles, permisos, persistencia, confirmación por correo
+y acceso mediante OAuth.
+
+El nombre provisional es «Proyecto de Procesos». Los documentos anteriores
+pueden conservar el nombre inicial «Piso compartido».
 
 Esta entrega cubre los hitos 1, 2 y 3: arquitectura por capas,
 gestión de usuarios, frontend, sesiones, rutas protegidas,
 persistencia en PostgreSQL, roles y registro de actividad.
 
 Aplicación publicada:
-https://piso-compartido-louo.onrender.com
+https://procesos-martatosca-569228981488.europe-west1.run.app
 
 Repositorio:
 https://github.com/martatoscaperez/Procesos_MartaTosca
@@ -28,7 +35,9 @@ https://github.com/martatoscaperez/Procesos_MartaTosca
 - Neon: aloja la base de datos PostgreSQL.
 - Node Test Runner: ejecuta pruebas automatizadas con un comando.
 - GitHub Actions: ejecuta las pruebas en pull requests y cambios de main.
-- Render: despliega automáticamente los cambios integrados en main.
+- Google Cloud Run: aloja el servidor y sirve el frontend.
+- Cloud Build y Artifact Registry: construyen y almacenan la imagen
+  utilizada para desplegar los cambios de main en Cloud Run.
 
 ## Arquitectura
 
@@ -129,9 +138,12 @@ Variables de la aplicación:
 
 - `DATABASE_URL`: cadena de conexión a PostgreSQL.
 - `SESSION_SECRET`: secreto utilizado para firmar la cookie de sesión.
-- `NODE_ENV`: `development` en local y `production` en Render.
+- `NODE_ENV`: `development` en local y `production` en Cloud Run.
   Las pruebas HTTP utilizan `test`.
 - `PORT`: puerto opcional; por defecto, 3000.
+  Cloud Run lo proporciona automáticamente.
+- `ALLOWED_DOMAINS`: dominios admitidos para el registro, separados por
+  comas; por ejemplo, `uclm.es,alu.uclm.es`.
 
 Variables opcionales de la cuenta de prueba local:
 
@@ -237,7 +249,10 @@ y rechaza inserciones duplicadas.
 
 Las sesiones se guardan actualmente en memoria.
 Se mantienen entre recargas de página, pero se pierden al reiniciar
-el servidor. El almacenamiento de usuarios y el de sesiones son distintos.
+el servidor. En Cloud Run también se pierden si se sustituye la instancia
+o se reduce el servicio a cero instancias. El almacenamiento de usuarios
+y el de sesiones son distintos. Para conservar sesiones entre instancias
+queda pendiente utilizar un almacén de sesiones compartido.
 
 ## Registro de actividad
 
@@ -253,7 +268,7 @@ Se registran:
 - Invalidación de sesiones.
 - Accesos rechazados por falta de sesión o permisos.
 
-Los logs aparecen en la terminal local y en Render → Logs.
+Los logs aparecen en la terminal local y en Cloud Run → Observability → Logs.
 
 El módulo permite únicamente los campos de contexto email, rol,
 estado y código. No se le pasan contraseñas, hashes, tokens, cookies
@@ -282,12 +297,13 @@ Para ejecutar únicamente la prueba de PostgreSQL:
 node --env-file=.env --test pruebas/postgres.test.js
 ```
 
-Hay 34 pruebas:
+Hay 40 pruebas:
 
 - 30 de lógica de usuarios.
 - Una prueba HTTP con comprobaciones de sesión, logout y permisos.
 - Una prueba de integración con PostgreSQL.
 - Dos pruebas del formato de los logs y la exclusión de campos secretos.
+- Seis pruebas de la variante de dominios permitidos.
 
 Se comprueban altas, duplicados, validaciones, hashes, estados de cuenta,
 confirmación, login, consulta de sesión, logout, eliminación y permisos
@@ -316,32 +332,52 @@ Se utiliza GitHub Flow:
 `.github/workflows/ci.yml` ejecuta las pruebas en cada pull request
 y en los cambios de main.
 
-El CI prepara una base PostgreSQL temporal y ejecuta las 34 pruebas.
+El CI prepara una base PostgreSQL temporal y ejecuta las 40 pruebas.
 No necesita las credenciales de Neon.
 
 ## Despliegue
 
-La configuración del servicio está en `render.yaml`.
+El servicio principal está en Google Cloud Run. La configuración se ha
+realizado en la consola de Google Cloud:
 
-Render utiliza:
+- Proyecto: `proyecto-de-procesos-513615`.
+- Servicio: `procesos-martatosca`.
+- Región: `europe-west1` (Bélgica).
+- Repositorio: `martatoscaperez/Procesos_MartaTosca`; rama `main`.
+- Cloud Build: buildpacks de Node.js, directorio raíz `/`, sin function target
+  ni entrypoint personalizado. El arranque utiliza `npm start`.
+- Acceso público e ingress `All`; la aplicación aplica su propio login
+  y sus controles de acceso a la API.
+- Facturación por petición, escalado automático con mínimo 0 y máximo 1.
 
-- Rama: `main`.
-- Instalación: `npm ci`.
-- Arranque: `npm start`.
-- Despliegue automático al integrar cambios en main.
+En las variables del contenedor se configuran `DATABASE_URL`,
+`SESSION_SECRET`, `NODE_ENV=production` y `ALLOWED_DOMAINS`.
+Cloud Run asigna `PORT`; no debe fijarse manualmente.
+Los secretos reales y el archivo `.env` no se suben al repositorio.
 
-En Render se configuran `DATABASE_URL`, `SESSION_SECRET`
-y `NODE_ENV=production`.
+Cloud Build construye y despliega los cambios de `main` automáticamente.
+El resultado se consulta en Build History y en las revisiones de Cloud Run.
+GitHub Actions ejecuta las pruebas por separado: antes de integrar un PR
+debe comprobarse que el CI termina correctamente.
 
-La tabla se prepara ejecutando `servidor/esquema.sql` en la base de datos
-del despliegue.
+PostgreSQL continúa alojado en Neon, con la misma base de datos que utilizaba
+Render. La migración del servidor conserva las cuentas existentes y no
+requiere crear una conexión Cloud SQL ni volver a inicializar la tabla.
+Para una base nueva, ejecutar `servidor/esquema.sql` antes del primer arranque.
 
-No se sube `.env`: Render utiliza sus propias variables de entorno.
+Con mínimo 0, el primer acceso después de un periodo de inactividad puede
+tardar más y puede ser necesario volver a iniciar sesión.
+El login del administrador se ha comprobado manualmente en Cloud Run.
 
-La instancia gratuita puede tardar en responder después de un periodo
-de inactividad.
+Render se conserva temporalmente como despliegue anterior. El archivo
+`render.yaml` documenta esa configuración. Se suspenderá su servicio tras
+verificar el despliegue automático de un cambio en Google Cloud.
+Neon debe mantenerse activo porque sigue siendo la base de datos principal.
 
 La aplicación publicada funciona independientemente del servidor local.
+
+Referencia: [buildpacks de Node.js](https://docs.cloud.google.com/docs/buildpacks/nodejs)
+y [sesiones en Cloud Run](https://docs.cloud.google.com/run/docs/configuring/session-affinity).
 
 ## Alcance de la entrega
 
