@@ -62,6 +62,9 @@ export function crearServicioUsuarios(
   return {
     async agregarUsuario(email, nombre, clave) {
       const emailNormalizado = normalizarEmail(email);
+      if (!/^[^\s@<>,;:]+@[^\s@<>,;:]+\.[^\s@<>,;:]+$/.test(emailNormalizado)) {
+        throw new Error('El email no tiene un formato válido.');
+      }
        if (!dominioPermitido(emailNormalizado)) {
         throw new Error('El dominio del email no está permitido.');
       }
@@ -96,6 +99,18 @@ export function crearServicioUsuarios(
       // dos registros del mismo email simultáneamente.
       const guardado = await repositorio.insertar(usuario);
       return obtenerDatosPublicos(guardado);
+    },
+
+    // Exige la contraseña para evitar reenvíos solicitados por terceros.
+    async verificarCuentaPendiente(email, clave) {
+      const usuario = await repositorio.buscarPorEmail(normalizarEmail(email));
+      if (!usuario || usuario.estado !== 'pendiente' ||
+          typeof clave !== 'string' || clave.length === 0 ||
+          Buffer.byteLength(clave, 'utf8') > 72 ||
+          !await bcrypt.compare(clave, usuario.claveHash)) {
+        throw new Error('No se pudo reenviar la confirmación con esos datos.');
+      }
+      return obtenerDatosPublicos(usuario);
     },
 
     // Genera un código para confirmar una cuenta pendiente.

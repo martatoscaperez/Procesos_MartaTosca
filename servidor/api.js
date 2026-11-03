@@ -12,6 +12,8 @@ import { crearConexion } from './conexion.js';
 import { crearRepositorioUsuariosPostgres } from './datos-postgres.js';
 import { fileURLToPath } from 'node:url';
 import { registrarActividad } from './actividad.js';
+import { crearCorreoConfirmacion } from './correo.js';
+import { crearServicioConfirmacion } from './confirmacion.js';
 
 // Creamos la aplicación Express.
 const app = express();
@@ -31,6 +33,16 @@ if (conexion) {
 }
 
 const servicioUsuarios = crearServicioUsuarios(repositorioUsuarios);
+
+// El login sigue disponible mientras se configura el proveedor de correo.
+let servicioConfirmacion;
+try {
+  servicioConfirmacion = crearServicioConfirmacion(
+    servicioUsuarios, crearCorreoConfirmacion()
+  );
+} catch {
+  registrarActividad('correo_no_configurado', { codigo: 503 });
+}
 
 // Usamos el puerto del entorno o el 3000 por defecto.
 const puerto = process.env.PORT || 3000;
@@ -179,10 +191,15 @@ app.post('/api/prueba/dominio', (req, res) => {
 
 // POST: recibe los datos del registro y delega las reglas en la lógica.
 app.post('/api/usuarios', async (req, res) => {
+  if (!servicioConfirmacion) {
+    return res.status(503).json({
+      error: 'El registro no está disponible temporalmente. Inténtalo más tarde.'
+    });
+  }
   try {
     const { email, nombre, clave } = req.body ?? {};
 
-    const usuario = await servicioUsuarios.agregarUsuario(
+    const usuario = await servicioConfirmacion.registrar(
       email,
       nombre,
       clave
@@ -194,9 +211,55 @@ app.post('/api/usuarios', async (req, res) => {
       estado: usuario.estado
     });
 
+    registrarActividad(usuario.correoEnviado
+      ? 'confirmacion_enviada' : 'confirmacion_envio_fallido', { codigo: usuario.correoEnviado ? 200 : 502 });
     res.status(201).json(usuario);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Reenvío con credenciales; no basta con conocer el email de otra persona.
+const reenvios = new Map();
+app.post('/api/confirmacion/reenviar', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (!servicioConfirmacion) {
+    return res.status(503).json({ error: 'El servicio de correo no está disponible.' });
+  }
+  const { email, clave } = req.body ?? {};
+  const ahora = Date.now();
+  for (const [direccion, caduca] of reenvios) {
+    if (caduca <= ahora) reenvios.delete(direccion);
+  }
+  const direccion = req.ip;
+  if (reenvios.has(direccion)) {
+    return res.status(429).json({ error: 'Espera un minuto antes de solicitar otro correo.' });
+  }
+  reenvios.set(direccion, ahora + 60000);
+  try {
+    const enviado = await servicioConfirmacion.reenviar(email, clave);
+    registrarActividad(enviado ? 'confirmacion_enviada' : 'confirmacion_envio_fallido', {
+      codigo: enviado ? 200 : 502
+    });
+    res.status(enviado ? 200 : 502).json(enviado
+      ? { mensaje: 'Correo enviado. Revisa tu bandeja de entrada y spam.' }
+      : { error: 'No se pudo enviar el correo. Espera un minuto y vuelve a intentarlo.' });
+  } catch {
+    res.status(400).json({ error: 'No se pudo reenviar la confirmación con esos datos.' });
+  }
+});
+
+// Los enlaces nuevos entregan el token por POST para evitar URLs en los logs.
+app.post('/api/confirmar', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  try {
+    const { email, token } = req.body ?? {};
+    await servicioUsuarios.confirmarUsuario(email, token);
+    registrarActividad('usuario_confirmado', { codigo: 200 });
+    res.json({ mensaje: 'Cuenta confirmada. Ya puedes iniciar sesión.' });
+  } catch {
+    res.status(400).json({ error: 'El enlace de confirmación no es válido o ha caducado.' });
   }
 });
 

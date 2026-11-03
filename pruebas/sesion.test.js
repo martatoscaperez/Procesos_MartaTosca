@@ -12,6 +12,7 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
       ...process.env,
       PORT: '0',
       NODE_ENV: 'test',
+      APP_URL: 'http://localhost:3000',
       ALLOWED_DOMAINS: 'example.com',
       SESSION_SECRET: randomBytes(32).toString('hex'),
       CREAR_USUARIO_PRUEBA: 'true',
@@ -168,6 +169,32 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
   });
 
   assert.equal(registroOtraCuenta.status, 201);
+  const cuentaPendiente = await registroOtraCuenta.json();
+  assert.equal(cuentaPendiente.correoEnviado, true);
+  assert.equal(cuentaPendiente.estado, 'pendiente');
+  assert.equal(cuentaPendiente.token, undefined);
+  assert.equal(cuentaPendiente.confirmacionHash, undefined);
+
+  const reenvio = await fetch(`${baseUrl}/api/confirmacion/reenviar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'otra@example.com', clave: 'otra-clave-ficticia' })
+  });
+  assert.equal(reenvio.status, 200);
+  const repetido = await fetch(`${baseUrl}/api/confirmacion/reenviar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'otra@example.com', clave: 'otra-clave-ficticia' })
+  });
+  assert.equal(repetido.status, 429);
+  const confirmacionInvalida = await fetch(`${baseUrl}/api/confirmar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'otra@example.com', token: 'incorrecto' })
+  });
+  assert.equal(confirmacionInvalida.status, 400);
+  assert.equal(confirmacionInvalida.headers.get('cache-control'), 'no-store');
+  assert.equal(confirmacionInvalida.headers.get('referrer-policy'), 'no-referrer');
 
   const eliminarOtraCuenta = await fetch(
     `${baseUrl}/api/usuarios/otra@example.com`,

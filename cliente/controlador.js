@@ -5,7 +5,8 @@ import {
   registrarUsuario,
   iniciarSesion,
   consultarSesion,
-  cerrarSesion
+  cerrarSesion,
+  reenviarConfirmacion
 } from './comunicacion/rest.js';
 
 // Localizamos los elementos de la página.
@@ -19,6 +20,26 @@ const panelSesion = document.getElementById('panel-sesion');
 const usuarioConectado = document.getElementById('usuario-conectado');
 const botonCerrarSesion = document.getElementById('cerrar-sesion');
 const pestanas = document.querySelector('.pestanas');
+const botonReenviar = document.getElementById('reenviar-confirmacion');
+
+botonReenviar.addEventListener('click', async () => {
+  const email = document.getElementById('login-email').value.trim();
+  const clave = document.getElementById('login-clave').value;
+  if (!email || !clave) {
+    mensaje.textContent = 'Introduce el email y la contraseña de tu cuenta pendiente.';
+    return;
+  }
+  botonReenviar.disabled = true;
+  mensaje.textContent = 'Enviando correo…';
+  try {
+    const resultado = await reenviarConfirmacion(email, clave);
+    mensaje.textContent = resultado.mensaje;
+  } catch (error) {
+    mensaje.textContent = error.message;
+  } finally {
+    botonReenviar.disabled = false;
+  }
+});
 
 // Consulta el servidor y muestra si está disponible.
 async function mostrarEstadoServidor() {
@@ -156,7 +177,9 @@ formularioRegistro.addEventListener('submit', async (evento) => {
     formularioRegistro.reset();
 
     mensaje.textContent =
-      `Cuenta creada para ${usuario.nombre}. Está pendiente de confirmación.`;
+      usuario.correoEnviado
+        ? `Cuenta creada para ${usuario.nombre}. Revisa tu correo y spam para activarla.`
+        : 'Cuenta creada, pero no se pudo enviar el correo. Puedes reenviarlo desde Iniciar sesión con tu email y contraseña.';
   } catch (error) {
     mensaje.textContent = error.message;
   } finally {
