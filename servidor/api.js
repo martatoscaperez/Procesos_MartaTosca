@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url';
 import { registrarActividad } from './actividad.js';
 import { crearCorreoConfirmacion } from './correo.js';
 import { crearServicioConfirmacion } from './confirmacion.js';
+import { crearOAuthGoogle } from './oauth-google.js';
+import { crearServicioIdentidadGoogle } from './identidad-google.js';
 
 // Creamos la aplicación Express.
 const app = express();
@@ -33,6 +35,13 @@ if (conexion) {
 }
 
 const servicioUsuarios = crearServicioUsuarios(repositorioUsuarios);
+const identidadGoogle = crearServicioIdentidadGoogle(repositorioUsuarios);
+let oauthGoogle;
+try {
+  oauthGoogle = crearOAuthGoogle();
+} catch {
+  registrarActividad('google_no_configurado', { codigo: 503 });
+}
 
 // El login sigue disponible mientras se configura el proveedor de correo.
 let servicioConfirmacion;
@@ -89,6 +98,56 @@ const carpetaCliente = fileURLToPath(
 
 // Servimos sus archivos. En la ruta "/" se mostrará index.html.
 app.use(express.static(carpetaCliente));
+
+// Solo indica disponibilidad; no expone credenciales del cliente OAuth.
+app.get('/api/auth/google/config', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ disponible: Boolean(oauthGoogle) });
+});
+
+app.get('/api/auth/google', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  if (!oauthGoogle) return res.redirect('/?google=no_disponible');
+  try {
+    let emailVincular;
+    if (req.query.vincular === '1') {
+      const usuario = await servicioUsuarios.obtenerUsuarioActivo(req.session.email);
+      emailVincular = usuario.email;
+    }
+    const { intento, url } = await oauthGoogle.iniciar(emailVincular);
+    req.session.oauthGoogle = intento;
+    req.session.save(error => {
+      if (error) return res.redirect('/?google=error');
+      res.redirect(url);
+    });
+  } catch {
+    res.redirect('/?google=error');
+  }
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  const intento = req.session.oauthGoogle;
+  delete req.session.oauthGoogle;
+  try {
+    // Consume el intento incluso si Google rechaza o falla el acceso.
+    await new Promise((resolve, reject) => req.session.save(error => error ? reject(error) : resolve()));
+    if (!oauthGoogle) throw new Error('Google no está configurado.');
+    const perfil = await oauthGoogle.completar(req.query, intento);
+    const usuario = await identidadGoogle.acceder(perfil, intento.emailVincular);
+    await new Promise((resolve, reject) => req.session.regenerate(error => error ? reject(error) : resolve()));
+    req.session.email = usuario.email;
+    await new Promise((resolve, reject) => req.session.save(error => error ? reject(error) : resolve()));
+    registrarActividad('login_google_correcto', { email: usuario.email, rol: usuario.rol });
+    res.redirect(intento.emailVincular ? '/?google=vinculado' : '/');
+  } catch (error) {
+    registrarActividad('login_google_rechazado', { codigo: 401 });
+    // Nunca se devuelven errores del proveedor, códigos o tokens al navegador.
+    res.redirect(error.code === 'VINCULAR_GOOGLE' ? '/?google=vincular' : '/?google=error');
+  }
+});
 
 // Exige una sesión válida y consulta el estado actual del usuario.
 async function exigirSesion(req, res, next) {

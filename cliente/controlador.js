@@ -6,7 +6,8 @@ import {
   iniciarSesion,
   consultarSesion,
   cerrarSesion,
-  reenviarConfirmacion
+  reenviarConfirmacion,
+  consultarGoogle
 } from './comunicacion/rest.js';
 
 // Localizamos los elementos de la página.
@@ -21,6 +22,24 @@ const usuarioConectado = document.getElementById('usuario-conectado');
 const botonCerrarSesion = document.getElementById('cerrar-sesion');
 const pestanas = document.querySelector('.pestanas');
 const botonReenviar = document.getElementById('reenviar-confirmacion');
+const accesoGoogle = document.getElementById('acceso-google');
+const vinculoGoogle = document.getElementById('vinculo-google');
+let googleDisponible = false;
+let sesionConectada = false;
+
+function mostrarGoogle() {
+  accesoGoogle.hidden = !googleDisponible || sesionConectada;
+  vinculoGoogle.hidden = !googleDisponible || !sesionConectada;
+}
+
+async function prepararGoogle() {
+  try {
+    googleDisponible = (await consultarGoogle()).disponible === true;
+  } catch {
+    googleDisponible = false;
+  }
+  mostrarGoogle();
+}
 
 botonReenviar.addEventListener('click', async () => {
   const email = document.getElementById('login-email').value.trim();
@@ -66,6 +85,8 @@ function cambiarFormulario(mostrarLogin) {
 // Actualiza la interfaz según haya sesión o no.
 function mostrarSesion(usuario) {
   const conectado = usuario !== null;
+  sesionConectada = conectado;
+  mostrarGoogle();
 
   panelSesion.hidden = !conectado;
   pestanas.hidden = conectado;
@@ -190,4 +211,18 @@ formularioRegistro.addEventListener('submit', async (evento) => {
 
 // Comprobamos el servidor y recuperamos la sesión al cargar la página.
 mostrarEstadoServidor();
-recuperarSesion();
+prepararGoogle();
+recuperarSesion().then(() => {
+  const parametros = new URLSearchParams(location.search);
+  const resultado = parametros.get('google');
+  const mensajesGoogle = {
+    error: 'No se pudo completar el acceso con Google. Comprueba el dominio permitido o vuelve a intentarlo.',
+    no_disponible: 'El acceso con Google todavía no está disponible.',
+    vincular: 'Ya tienes una cuenta. Entra con tu contraseña y pulsa «Vincular Google a mi cuenta».',
+    vinculado: 'Google se ha vinculado a tu cuenta. Ya puedes usarlo para iniciar sesión.'
+  };
+  if (Object.hasOwn(mensajesGoogle, resultado)) {
+    mensaje.textContent = mensajesGoogle[resultado];
+    history.replaceState(null, '', location.pathname);
+  }
+});

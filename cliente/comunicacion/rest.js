@@ -21,6 +21,12 @@ export function reenviarConfirmacion(email, clave) {
   return enviarConfirmacion('/api/confirmacion/reenviar', { email, clave });
 }
 
+export async function consultarGoogle() {
+  const respuesta = await fetch('/api/auth/google/config', { cache: 'no-store' });
+  if (!respuesta.ok) return { disponible: false };
+  return respuesta.json();
+}
+
 export async function consultarEstado() {
   const respuesta = await fetch('/api/estado');
 
