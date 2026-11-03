@@ -187,7 +187,7 @@ export function crearServicioUsuarios(
 
       const usuario = await repositorio.buscarPorEmail(emailNormalizado);
 
-      if (!usuario || usuario.estado === 'eliminado') {
+      if (!usuario || usuario.estado === 'eliminado' || typeof usuario.claveHash !== 'string') {
         throw new Error('Email o contraseña incorrectos.');
       }
 

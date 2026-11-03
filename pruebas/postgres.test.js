@@ -6,6 +6,7 @@ import {
   crearRepositorioUsuariosPostgres
 } from '../servidor/datos-postgres.js';
 import { crearServicioUsuarios } from '../servidor/logica.js';
+import { crearServicioIdentidadGoogle } from '../servidor/identidad-google.js';
 process.env.ALLOWED_DOMAINS = 'example.com';
 
 test(
@@ -109,7 +110,24 @@ test(
       assert.equal(listado.length, 1);
       assert.equal(listado[0].email, 'postgres@example.com');
 
+      // La identidad Google persiste y no altera la contraseña local.
+      const google = crearServicioIdentidadGoogle(repositorio);
+      const perfil = { sub: 'google-postgres', email: 'postgres@example.com', email_verified: true };
+      await google.acceder(perfil, perfil.email);
+      assert.equal((await otroRepositorio.buscarPorGoogleSub(perfil.sub)).email, perfil.email);
+      assert.equal((await servicio.iniciarSesion(perfil.email, 'clave-ficticia')).estado, 'activo');
+      const soloGoogle = await google.acceder({ sub: 'google-nuevo', email: 'google@example.com', email_verified: true });
+      assert.equal(soloGoogle.estado, 'activo');
+      assert.equal((await otroRepositorio.buscarPorEmail(soloGoogle.email)).claveHash, null);
+      await cliente.query('SAVEPOINT google_duplicado');
+      await assert.rejects(repositorio.insertar({
+        email: 'duplicado@example.com', nombre: 'Duplicado', claveHash: null,
+        rol: 'usuario', estado: 'activo', googleSub: 'google-nuevo'
+      }));
+      await cliente.query('ROLLBACK TO SAVEPOINT google_duplicado');
+
       await servicio.eliminarUsuario('postgres@example.com');
+      await assert.rejects(google.acceder(perfil), /no está activa/);
 
       assert.equal(
         await servicio.usuarioActivo('postgres@example.com'),

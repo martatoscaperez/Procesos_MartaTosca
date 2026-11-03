@@ -13,6 +13,8 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
       PORT: '0',
       NODE_ENV: 'test',
       APP_URL: 'http://localhost:3000',
+      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_SECRET: '',
       ALLOWED_DOMAINS: 'example.com',
       SESSION_SECRET: randomBytes(32).toString('hex'),
       CREAR_USUARIO_PRUEBA: 'true',
@@ -88,6 +90,12 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
   });
 
   // Una petición sin cookie no tiene sesión.
+  const configGoogle = await fetch(`${baseUrl}/api/auth/google/config`);
+  assert.deepEqual(await configGoogle.json(), { disponible: false });
+  const callbackGoogle = await fetch(`${baseUrl}/api/auth/google/callback?code=ficticio&state=falso`, { redirect: 'manual' });
+  assert.equal(callbackGoogle.status, 302);
+  assert.equal(callbackGoogle.headers.get('location'), '/?google=error');
+
   const sinSesion = await fetch(`${baseUrl}/api/sesion`);
   assert.equal(sinSesion.status, 401);
 

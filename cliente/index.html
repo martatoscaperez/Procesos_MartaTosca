@@ -17,6 +17,9 @@
   <main>
     <section class="tarjeta">
       <h2>Accede a tu cuenta</h2>
+      <p id="acceso-google" hidden>
+        <a class="boton-google" href="/api/auth/google">Continuar con Google</a>
+      </p>
 
       <!-- Botones para cambiar entre los dos formularios. -->
       <div class="pestanas">
@@ -71,6 +74,9 @@
       <!-- Se muestra cuando el usuario tiene una sesión iniciada. -->
       <div id="panel-sesion" hidden>
         <p id="usuario-conectado"></p>
+        <p id="vinculo-google" hidden>
+          <a class="boton-google" href="/api/auth/google?vincular=1">Vincular Google a mi cuenta</a>
+        </p>
 
         <button id="cerrar-sesion" type="button">
            Cerrar sesión

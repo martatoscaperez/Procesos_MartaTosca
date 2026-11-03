@@ -13,6 +13,7 @@ function convertirUsuario(fila) {
     rol: fila.rol,
     estado: fila.estado
   };
+  if (fila.google_sub) usuario.googleSub = fila.google_sub;
 
   if (fila.confirmacion_hash !== null) {
     usuario.confirmacionHash = fila.confirmacion_hash;
@@ -34,7 +35,8 @@ function obtenerValores(usuario) {
     usuario.rol,
     usuario.estado,
     usuario.confirmacionHash ?? null,
-    usuario.confirmacionCaduca ?? null
+    usuario.confirmacionCaduca ?? null,
+    usuario.googleSub ?? null
   ];
 }
 
@@ -51,6 +53,21 @@ export function crearRepositorioUsuariosPostgres(conexion) {
       return convertirUsuario(resultado.rows[0]);
     },
 
+    async buscarPorGoogleSub(sub) {
+      const resultado = await conexion.query('SELECT * FROM usuarios WHERE google_sub = $1', [sub]);
+      return convertirUsuario(resultado.rows[0]);
+    },
+
+    async vincularGoogle(email, sub) {
+      const resultado = await conexion.query(
+        `UPDATE usuarios SET google_sub = $2
+         WHERE email = $1 AND estado = 'activo'
+         AND (google_sub IS NULL OR google_sub = $2) RETURNING *`, [email, sub]
+      );
+      if (!resultado.rows[0]) throw new Error('No se pudo vincular la cuenta de Google.');
+      return convertirUsuario(resultado.rows[0]);
+    },
+
     // Inserta una cuenta nueva sin sobrescribir una existente.
     async insertar(usuario) {
       try {
@@ -62,9 +79,10 @@ export function crearRepositorioUsuariosPostgres(conexion) {
             rol,
             estado,
             confirmacion_hash,
-            confirmacion_caduca
+            confirmacion_caduca,
+            google_sub
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING *`,
           obtenerValores(usuario)
         );
@@ -90,16 +108,18 @@ export function crearRepositorioUsuariosPostgres(conexion) {
           rol,
           estado,
           confirmacion_hash,
-          confirmacion_caduca
+          confirmacion_caduca,
+          google_sub
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (email) DO UPDATE SET
           nombre = EXCLUDED.nombre,
           clave_hash = EXCLUDED.clave_hash,
           rol = EXCLUDED.rol,
           estado = EXCLUDED.estado,
           confirmacion_hash = EXCLUDED.confirmacion_hash,
-          confirmacion_caduca = EXCLUDED.confirmacion_caduca
+          confirmacion_caduca = EXCLUDED.confirmacion_caduca,
+          google_sub = COALESCE(usuarios.google_sub, EXCLUDED.google_sub)
         RETURNING *`,
         obtenerValores(usuario)
       );

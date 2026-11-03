@@ -85,6 +85,22 @@ button:hover {
   background-color: #913d66;
 }
 
+.boton-google {
+  display: inline-block;
+  padding: 14px 18px;
+  border: 1px solid #edbfd4;
+  border-radius: 15px;
+  color: #87395f;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.boton-google:hover,
+.boton-google:focus-visible {
+  background-color: #fbe9f1;
+  outline: 2px solid #87395f;
+}
+
 /* Etiquetas y campos de los formularios. */
 label {
   display: block;

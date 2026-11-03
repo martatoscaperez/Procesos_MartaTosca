@@ -86,8 +86,8 @@ Una cuenta registrada comienza en estado `pendiente`.
 Las cuentas eliminadas no pueden iniciar sesión.
 
 El registro incorpora el envío de un enlace de confirmación mediante SMTP.
-La integración está preparada en código; falta configurar el proveedor y
-comprobar una entrega real en Cloud Run antes de dar esta parte por terminada.
+El flujo real de registro, recepción, activación y login se ha comprobado
+en Cloud Run con Brevo. El primer mensaje llegó a spam.
 
 ## Confirmación por correo (hito 4)
 
@@ -139,8 +139,62 @@ una clave SMTP, distinta de una clave API. Primero verificar el remitente.
 Antes de integrar y desplegar, preparar las variables del proveedor.
 Después registrar una cuenta real de un dominio permitido, confirmar que
 recibe el correo, activarla, comprobar login y rechazar el enlace reutilizado.
-Esta comprobación real queda pendiente; las pruebas automatizadas utilizan
+La comprobación real ya se ha realizado con una cuenta Gmail, añadiendo
+`gmail.com` a `ALLOWED_DOMAINS` en Cloud Run. Las pruebas automatizadas utilizan
 transportes simulados y no envían correos a terceros.
+
+## Acceso con Google (hito 4)
+
+La implementación OAuth está preparada y pendiente de configurar y verificar
+con credenciales reales antes de publicar esta versión.
+Se usa la biblioteca oficial `google-auth-library` y el flujo de código de
+autorización con PKCE S256, state aleatorio, nonce y caducidad de 10 minutos.
+La biblioteca verifica firma, emisor, audiencia y caducidad del ID token;
+la aplicación comprueba el nonce y exige un email verificado y permitido.
+Solo se solicitan `openid`, `email` y `profile`; no se guardan tokens Google.
+
+Google identifica la cuenta mediante `sub`, no por la coincidencia del email.
+Una cuenta nueva recibe rol `usuario` y estado `activo`, sin contraseña local.
+La baja de la cuenta impide futuros accesos Google.
+Si ya existe una cuenta local, debe estar activa y el usuario tiene que entrar
+primero con contraseña y pulsar «Vincular Google a mi cuenta», eligiendo el
+mismo email. Se conservan contraseña y rol; no se activa una cuenta pendiente
+ni se vincula automáticamente una identidad con el mismo email.
+
+Preparación de la base existente, antes de desplegar el código:
+
+```powershell
+npm.cmd run migrar-google
+```
+
+El script ejecuta `servidor/migracion-google.sql` sobre `DATABASE_URL` de `.env`.
+Añade el identificador Google único y permite contraseñas nulas en cuentas
+creadas por OAuth. No elimina cuentas ni cambia contraseñas, roles o estados.
+Se puede repetir. Una base nueva usa directamente `servidor/esquema.sql`.
+
+En Google Auth Platform, configurar un cliente OAuth de tipo «Aplicación web»:
+
+- Nombre de la aplicación: `Proyecto de Procesos`.
+- Ámbitos: `openid`, `email` y `profile`.
+- En modo pruebas, añadir las cuentas que vayan a probar el acceso.
+- URI de redirección autorizada de producción:
+  `https://procesos-martatosca-569228981488.europe-west1.run.app/api/auth/google/callback`.
+- Para desarrollo, añadir también
+  `http://localhost:3000/api/auth/google/callback`.
+
+Configurar `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y `APP_URL` en `.env`
+y en las variables de Cloud Run. El secreto solo se utiliza en el backend.
+El botón se oculta si falta configuración válida; el login local sigue disponible.
+Si la instancia se reinicia durante la redirección, el intento en sesión se
+pierde y es necesario volver a empezar el acceso con Google.
+
+Antes de marcar OAuth como completado, comprobar en Chrome o un navegador
+externo: vinculación de la cuenta local, login posterior con Google,
+creación de una cuenta Google nueva permitida y rechazo de una cuenta eliminada.
+Google puede rechazar el acceso desde navegadores incrustados en aplicaciones.
+
+Referencias: [OAuth para servidores web](https://developers.google.com/identity/protocols/oauth2/web-server)
+y [OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect).
 
 ## Ejecutar en local
 
@@ -353,7 +407,7 @@ Para ejecutar únicamente la prueba de PostgreSQL:
 node --env-file=.env --test pruebas/postgres.test.js
 ```
 
-Hay 46 pruebas:
+Hay 57 pruebas:
 
 - 30 de lógica de usuarios.
 - Una prueba HTTP con comprobaciones de sesión, logout y permisos.
@@ -361,6 +415,7 @@ Hay 46 pruebas:
 - Dos pruebas del formato de los logs y la exclusión de campos secretos.
 - Seis pruebas de la variante de dominios permitidos.
 - Seis pruebas de correo y confirmación, incluidos fallos SMTP y reenvíos.
+- Once pruebas de identidad Google, vinculación y validación del flujo OAuth.
 
 Se comprueban altas, duplicados, validaciones, hashes, estados de cuenta,
 confirmación, login, consulta de sesión, logout, eliminación y permisos
@@ -389,7 +444,7 @@ Se utiliza GitHub Flow:
 `.github/workflows/ci.yml` ejecuta las pruebas en cada pull request
 y en los cambios de main.
 
-El CI prepara una base PostgreSQL temporal y ejecuta las 46 pruebas.
+El CI prepara una base PostgreSQL temporal y ejecuta las 57 pruebas.
 No necesita las credenciales de Neon.
 
 ## Despliegue
@@ -444,6 +499,6 @@ y [sesiones en Cloud Run](https://docs.cloud.google.com/run/docs/configuring/ses
 - Hito 3: persistencia en PostgreSQL, secretos externos al código,
   administrador, permisos y registro de actividad.
 
-El hito 4 está en desarrollo: la confirmación por correo está implementada
-en código y pendiente de configurar y verificar con un proveedor real.
-El inicio de sesión mediante OAuth sigue pendiente.
+El hito 4 está en desarrollo: la confirmación por correo ya está verificada
+en producción. El acceso Google está implementado en código y pendiente
+de configuración y comprobación real antes de publicar esta versión.

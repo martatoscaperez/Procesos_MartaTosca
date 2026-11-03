@@ -16,8 +16,27 @@ export function crearRepositorioUsuarios() {
       if (usuarios.has(usuario.email)) {
         throw new Error('Ya existe un usuario con ese email.');
       }
+      if (usuario.googleSub && Array.from(usuarios.values()).some(
+        otro => otro.googleSub === usuario.googleSub
+      )) throw new Error('La cuenta de Google ya está vinculada.');
 
       usuarios.set(usuario.email, { ...usuario });
+      return { ...usuario };
+    },
+
+    buscarPorGoogleSub(sub) {
+      const usuario = Array.from(usuarios.values()).find(u => u.googleSub === sub);
+      return usuario ? { ...usuario } : null;
+    },
+
+    vincularGoogle(email, sub) {
+      const usuario = usuarios.get(email);
+      if (!usuario || usuario.estado !== 'activo' ||
+          (usuario.googleSub && usuario.googleSub !== sub) ||
+          Array.from(usuarios.values()).some(u => u.googleSub === sub && u.email !== email)) {
+        throw new Error('No se pudo vincular la cuenta de Google.');
+      }
+      usuario.googleSub = sub;
       return { ...usuario };
     },
 
