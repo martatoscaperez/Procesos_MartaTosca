@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi piso · HogarDu</title>
+  <link rel="stylesheet" href="./estilos.css">
+  <link rel="stylesheet" href="./tareas-editorial.css">
+</head>
+<body class="pagina-piso">
+  <header class="cabecera-piso">
+    <strong id="seccion-cabecera">Inicio</strong>
+    <span class="contexto-piso-cabecera"><span aria-hidden="true">·</span> <span id="nombre-piso-cabecera"></span></span>
+  </header>
+  <main class="contenido-piso">
+    <p id="estado-piso" role="status">Cargando tu piso…</p>
+    <div id="panel-piso" hidden>
+      <nav id="menu-piso" class="navegacion-piso" aria-label="Secciones del piso">
+        <div class="marca-lateral-tareas"><span>Hogar</span><span>Do</span></div>
+        <div class="identidad-piso-menu">
+          <div id="fondo-foto-piso-menu" class="foto-piso-menu">
+            <img id="foto-piso-menu" alt="Foto del piso" hidden>
+          </div>
+        </div>
+        <div class="funciones-principales">
+        <span class="titulo-grupo-menu">Organización del piso</span>
+        <a href="#inicio" aria-current="page">Inicio</a>
+        <a href="#tareas">Tareas</a>
+        <a href="#gastos">Gastos</a>
+        <a href="#compra">Compra</a>
+        <a href="#calendario">Calendario</a>
+        </div>
+        <div class="enlaces-convivencia">
+        <span class="titulo-grupo-menu">Convivencia</span>
+        <a href="#avisos">Chat de Avisos<span id="punto-avisos" class="punto-avisos" hidden aria-label="Avisos sin leer"></span></a>
+        <a href="#normas">Normas</a>
+        <a href="#ranking"><span aria-hidden="true">🏅</span> Ranking del piso</a>
+        </div>
+        <a class="enlace-cuenta-tareas cuenta-barra" href="#cuenta"><span id="avatar-cuenta-tareas" class="avatar-miembro" aria-hidden="true"></span><span class="texto-cuenta-barra"><strong id="nombre-cuenta-barra"></strong><small>Mi cuenta</small></span><span class="engrana-cuenta" aria-hidden="true">⚙</span></a>
+      </nav>
+      <div class="centro-piso">
+      <section id="inicio" class="seccion-piso">
+        <header class="saludo-inicio">
+          <h1 id="saludo-inicio"></h1>
+          <p id="fecha-inicio"></p>
+        </header>
+        <div class="resumen-inicio">
+          <a href="#tareas"><strong id="pendientes-inicio">—</strong><span>Tus tareas pendientes</span></a>
+          <a href="#ranking"><strong id="puntos-inicio">—</strong><span>Tus puntos del mes</span></a>
+          <a href="#gastos" id="enlace-gastos-inicio"><strong id="gastos-pendientes-inicio" aria-live="polite">—</strong><span>Tus gastos pendientes</span></a>
+        </div>
+        <div class="columnas-inicio">
+          <div>
+            <div class="titulo-bloque-inicio"><h2>Tus próximas tareas</h2></div>
+            <p id="estado-tareas-inicio" role="status">Cargando tareas…</p>
+            <ul id="tareas-inicio"></ul>
+            <h2 class="titulo-proximos-eventos">Próximos eventos</h2>
+            <ul id="eventos-inicio"></ul>
+          </div>
+          <div>
+            <h2>Compañeros del piso</h2>
+            <ul id="miembros-hogar"></ul>
+            <div class="lider-inicio">
+              <h2>🏅 Ranking del mes</h2>
+              <p id="lider-inicio"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="tareas" class="seccion-piso" aria-label="Tareas del piso" hidden>
+        <div class="tablero-tareas">
+        <header class="portada-tareas">
+          <div class="vistas-tareas" aria-label="Vista de tareas">
+            <button id="vista-modificar-tareas" type="button" aria-pressed="false" aria-controls="panel-modificar-tareas">Añadir</button>
+            <button id="vista-ver-tareas" type="button" aria-pressed="true" aria-controls="panel-ver-tareas">Ver Tareas</button>
+<button id="vista-loteria-tareas" type="button" aria-pressed="false">Lotería de tareas</button>
+          </div>
+        </header>
+        <p id="estado-tareas" role="status"></p>
+        <div id="panel-modificar-tareas" hidden>
+        <div class="columna-alta-tareas">
+        <h2><span aria-hidden="true">＋</span> Añadir tarea</h2>
+        <form id="crear-tarea">
+          <label for="titulo-tarea">Nombre de la tarea</label>
+          <input id="titulo-tarea" name="titulo" maxlength="100" placeholder="Limpiar la cocina" required>
+          <div class="campos-fecha-frecuencia">
+          <div>
+          <label for="limite-tarea">Fecha límite</label>
+          <input id="limite-tarea" name="limite" type="date" required>
+          </div>
+          <div>
+          <label for="frecuencia-tarea">Frecuencia</label>
+          <select id="frecuencia-tarea" name="frecuencia">
+            <option value="puntual">Una vez</option>
+            <option value="semanal">Cada semana</option>
+            <option value="mensual">Cada mes</option>
+          </select>
+          </div>
+          </div>
+          <label for="responsable-tarea" id="etiqueta-responsable" hidden>Responsable</label>
+          <select id="responsable-tarea" name="responsable" hidden disabled></select>
+          <fieldset id="orden-turno" hidden>
+            <legend>Participantes y orden del turno</legend>
+            <p>Marca a quienes participan y usa las flechas para ordenar. El primero empieza.</p>
+            <ol id="participantes-turno"></ol>
+          </fieldset>
+          <button type="submit">Añadir tarea</button>
+        </form>
+        </div>
+
+        </div>
+<div id="panel-loteria-tareas" hidden><h2>Lotería de tareas</h2><p>Reparto aleatorio con una diferencia máxima de una tarea entre compañeros.</p><form id="formulario-loteria"><label for="titulo-loteria">Nombre de la tarea</label><input id="titulo-loteria" maxlength="100" placeholder="Limpiar la cocina"><button id="anadir-tarea-loteria" type="button">＋ Añadir tarea</button><ul id="borrador-loteria"></ul><label for="limite-loteria">Fecha límite para todas las tareas (opcional)</label><input id="limite-loteria" type="date"><fieldset><legend>Participantes</legend><div id="miembros-loteria"></div></fieldset><button type="submit">Sortear y asignar tareas</button><p id="estado-loteria" role="status"></p></form><ul id="resultado-loteria"></ul></div>
+<div id="panel-ver-tareas">
+        <div class="columna-lista-tareas">
+        <div class="filtros-tareas" aria-label="Filtrar tareas">
+          <button type="button" id="mis-tareas" aria-pressed="true">Solo mis tareas</button>
+          <button type="button" id="tareas-del-piso" aria-pressed="false">Todas las tareas</button>
+        </div>
+        <h3 class="titulo-pendientes-tareas">Pendientes</h3><ul id="tareas-pendientes" class="lista-tareas"></ul>
+        <h3 class="titulo-hechas-tareas"><span aria-hidden="true">✓</span> Hechas</h3><ul id="tareas-realizadas" class="lista-tareas"></ul>
+        <div id="proximos-turnos" hidden>
+          <h3>Próximos turnos</h3>
+          <ul id="lista-proximos-turnos" class="lista-tareas"></ul>
+        </div>
+        </div>
+        </div>
+        </div>
+      </section>
+      <section id="gastos" class="seccion-piso" hidden>
+        <div class="pestanas-gastos"><button id="ver-gastos" aria-pressed="true">Gastos</button><button id="ver-saldos" aria-pressed="false">Cuentas pendientes</button></div>
+        <p id="estado-gastos" role="status"></p>
+        <div id="vista-gastos"><div class="cabecera-gastos"><h2>Todos los gastos</h2></div><div id="lista-gastos"></div><button id="nuevo-gasto" type="button"><span aria-hidden="true">+</span>Añadir gasto</button></div>
+        <div id="vista-saldos" hidden><div class="filtros-saldos" aria-label="Filtrar cuentas pendientes"><button type="button" id="todos-saldos" aria-pressed="true">Todas</button><button type="button" id="mis-saldos" aria-pressed="false">Mías</button></div><h2>Cuentas pendientes del piso</h2><p class="ayuda-gastos">Las deudas se compensan entre compañeros. Registrar una devolución solo la apunta; no transfiere dinero.</p><div id="lista-saldos"></div><h3 class="titulo-devoluciones">Devoluciones registradas</h3><div id="lista-devoluciones"></div></div>
+      </section>
+      <section id="compra" class="seccion-piso" hidden>
+        <div class="cabecera-compra">
+        <h2>Todas las Listas</h2>
+        <div class="acciones-compra">
+          <button id="nueva-lista-compra" type="button">＋ Crear Nueva Lista</button>
+          <button id="nuevo-producto-compra" type="button">＋ Añadir Producto</button>
+        </div>
+        </div>
+        <p id="estado-compra" role="status"></p>
+        <div id="listas-compra"></div>
+        <div id="editor-producto-compra" hidden></div>
+      </section>
+      <section id="normas" class="seccion-piso" hidden><h2>Normas del piso</h2><p id="ayuda-normas" class="ayuda-gastos">Los acuerdos para convivir mejor.</p><p id="estado-normas" role="status"></p><ol id="lista-normas"></ol><button id="anadir-norma" type="button" hidden><span aria-hidden="true">+</span>Añadir norma</button></section>
+      <section id="calendario" class="seccion-piso" hidden>
+        <div class="barra-calendario">
+          <h2 id="mes-calendario"></h2>
+          <div class="acciones-calendario">
+            <button id="mes-anterior" type="button" aria-label="Mes anterior">‹</button>
+            <button id="calendario-hoy" type="button">Hoy</button>
+            <button id="mes-siguiente" type="button" aria-label="Mes siguiente">›</button>
+            <button id="nuevo-evento" type="button">＋ Añadir evento</button>
+          </div>
+        </div>
+        <p id="estado-calendario" role="status"></p>
+        <div class="semana-calendario" aria-hidden="true"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
+        <div id="dias-calendario" class="dias-calendario"></div>
+      </section>
+      <section id="avisos" class="seccion-piso" hidden><h2>Chat de Avisos</h2><p id="estado-avisos" role="status"></p><div id="mensajes-avisos" role="log" aria-label="Avisos del piso" aria-live="polite"></div><form id="enviar-aviso"><label class="etiqueta-aviso" for="texto-aviso">Escribe un aviso</label><div class="compositor-aviso"><textarea id="texto-aviso" name="texto" rows="2" maxlength="2000" required placeholder="Escribe un aviso para tus compañeros…"></textarea><button type="submit">Enviar ↑</button></div></form></section>
+      <section id="ranking" class="seccion-piso" hidden>
+        <h2>Ranking del piso</h2>
+        <p id="mes-ranking"></p>
+        <button id="abrir-gestion-puntuaciones" type="button" aria-haspopup="dialog">Gestión de las puntuaciones</button>
+        <p id="estado-ranking" role="status"></p>
+        <ol id="podio-ranking" aria-label="Podio del mes"></ol>
+        <h3 id="titulo-resto-ranking" hidden>Resto de compañeros</h3>
+        <ol id="lista-ranking"></ol>
+      </section>
+      <section id="cuenta" class="seccion-piso perfil-piso" aria-labelledby="titulo-perfil-piso" hidden>
+        <h2 id="titulo-perfil-piso">Mi perfil</h2>
+        <div class="identidad-piso">
+          <span id="avatar-perfil-piso" class="avatar-miembro" aria-hidden="true"></span>
+          <strong id="nombre-perfil-piso"></strong>
+        </div>
+        <p id="rol-perfil-piso"></p>
+        <div class="puntuacion-piso"><strong>Puntuación</strong><p id="puntos-piso">—</p></div>
+        <details class="configuracion-piso">
+          <summary>Configuración</summary>
+          <p id="moneda-configuracion-piso"></p>
+          <p><a href="./#mis-hogares">Mis pisos</a></p>
+          <a id="gestionar-piso" href="./">Gestionar mi piso</a>
+        </details>
+        <button id="abandonar-piso" type="button">Abandonar piso</button>
+        <button id="cerrar-sesion-piso" type="button">Cerrar sesión</button>
+        <p id="error-cuenta-piso" role="status"></p>
+      </section>
+      </div>
+    </div>
+  </main>
+  <dialog id="dialogo-editar-aviso" aria-labelledby="titulo-editar-aviso"><form id="formulario-editar-aviso"><h2 id="titulo-editar-aviso">Editar aviso</h2><label for="editar-texto-aviso">Mensaje</label><textarea id="editar-texto-aviso" name="texto" rows="5" required maxlength="2000"></textarea><p id="error-editar-aviso" role="status"></p><div class="acciones-gasto"><button type="button" id="cancelar-editar-aviso">Cancelar</button><button type="submit">Guardar cambios</button></div></form></dialog>
+  <dialog id="dialogo-puntuaciones" aria-labelledby="titulo-puntuaciones">
+    <h2 id="titulo-puntuaciones">Gestión de las puntuaciones</h2>
+    <p>Los puntos se calculan automáticamente según las tareas de cada compañero. Nadie los añade ni los quita manualmente.</p>
+    <ul>
+      <li><strong>+1 punto:</strong> al completar una tarea dentro de su fecha límite, incluido ese mismo día.</li>
+      <li><strong>−1 punto:</strong> cuando se supera la fecha límite sin completarla. Si se termina tarde, se mantiene el −1; no se resta otra vez cada día.</li>
+      <li><strong>0 puntos:</strong> mientras una tarea está pendiente y todavía está en plazo.</li>
+      <li><strong>Sin fecha límite:</strong> no hay penalización por retraso y se suma +1 al completarla.</li>
+    </ul>
+    <h3>Ranking del mes</h3>
+    <p>Se suman las tareas cuya fecha límite pertenece al mes actual. Si no tienen fecha límite, cuentan en el mes en que se completan. Cada mes tiene su propia clasificación.</p>
+    <p>Los compañeros con la misma puntuación comparten puesto. Ocultar una tarea hecha no elimina sus puntos. Subir una foto o comentarla no cambia la puntuación.</p>
+    <form method="dialog"><button type="submit">Entendido</button></form>
+  </dialog>
+  <dialog id="dialogo-norma" aria-labelledby="titulo-dialogo-norma"><form id="formulario-norma"><h2 id="titulo-dialogo-norma">Añadir norma</h2><label>Título<input name="titulo" required maxlength="100" placeholder="Por ejemplo, horario de descanso"></label><label>Norma (opcional)<textarea name="texto" maxlength="3000" rows="6" placeholder="Explica el acuerdo del piso…"></textarea></label><p id="error-norma" role="status"></p><div class="acciones-gasto"><button type="button" id="cancelar-norma">Cancelar</button><button type="submit">Guardar norma</button></div></form></dialog>
+  <dialog id="dialogo-gasto" aria-labelledby="titulo-dialogo-gasto">
+    <form id="formulario-gasto">
+      <h2 id="titulo-dialogo-gasto">Añadir gasto</h2>
+      <label>Concepto<input name="concepto" required maxlength="100" placeholder="Por ejemplo, compra del súper"></label>
+      <div class="columnas-gasto"><label>Importe<input name="importe" required inputmode="decimal" placeholder="0,00"></label><label>Fecha<input name="fecha" required type="date"></label></div>
+      <label>Quién pagó<select name="pagador" required></select></label>
+      <label>Reparto<select name="modo"><option value="igual">A partes iguales</option><option value="personalizado">Cantidades personalizadas</option></select></label>
+      <fieldset><legend>Entre quiénes se reparte</legend><div id="participantes-gasto"></div></fieldset>
+      <p id="resumen-reparto" class="ayuda-gastos"></p><p id="error-gasto" role="status"></p>
+      <div class="acciones-gasto"><button type="button" id="cancelar-gasto">Cancelar</button><button type="submit">Guardar gasto</button></div>
+    </form>
+  </dialog>
+  <dialog id="dialogo-devolucion" aria-labelledby="titulo-devolucion">
+    <form id="formulario-devolucion"><h2 id="titulo-devolucion">Registrar devolución</h2><p id="detalle-devolucion"></p><label>Importe devuelto<input name="importe" inputmode="decimal" required></label><p id="error-devolucion" role="status"></p><div class="acciones-gasto"><button id="cancelar-devolucion" type="button">Cancelar</button><button type="submit">Registrar devolución</button></div></form>
+  </dialog>
+  <dialog id="editar-tarea" aria-labelledby="titulo-editar-tarea">
+    <form id="formulario-editar-tarea">
+      <h2 id="titulo-editar-tarea">Editar tarea</h2>
+      <label>Nombre de la tarea<input name="titulo" required maxlength="100"></label>
+      <div class="campos-editar-tarea">
+        <label>Fecha límite (opcional)<input name="limite" type="date"></label>
+        <label>Frecuencia<select name="frecuencia"><option value="puntual">Una vez</option><option value="semanal">Semanal</option><option value="mensual">Mensual</option></select></label>
+      </div>
+      <label>Responsable<select name="responsable" required></select></label>
+      <p class="ayuda-editar-tarea">La frecuencia se aplicará a los próximos turnos. Se conservan las tareas ya hechas.</p>
+      <p id="error-editar-tarea" role="status"></p>
+      <div class="acciones-editar-tarea"><button type="button" id="cancelar-editar-tarea">Cancelar</button><button type="submit">Guardar cambios</button></div>
+    </form>
+  </dialog>
+  <dialog id="resultado-sorteo" aria-labelledby="titulo-resultado-sorteo">
+    <h2 id="titulo-resultado-sorteo" tabindex="-1">¡Así quedan las tareas!</h2>
+    <p>El reparto ya está guardado. Cada compañero puede consultar sus tareas en «Ver Tareas».</p>
+    <div id="reparto-por-persona"></div>
+    <form method="dialog"><button type="submit">Entendido</button></form>
+  </dialog>
+  <dialog id="confirmar-abandono" aria-labelledby="titulo-abandono">
+    <h2 id="titulo-abandono">¿Abandonar este piso?</h2>
+    <p>Perderás el acceso al piso. Podrás volver con una invitación válida.</p>
+    <button id="cancelar-abandono" type="button" autofocus>Cancelar</button>
+    <button id="aceptar-abandono" class="boton-abandono" type="button">Abandonar piso</button>
+    <p id="error-abandono" role="status"></p>
+  </dialog>
+  <dialog id="completar-tarea" aria-labelledby="titulo-completar-tarea">
+    <form id="formulario-completar-tarea">
+      <h2 id="titulo-completar-tarea">Marcar tarea como hecha</h2>
+      <div class="invitacion-foto-tarea">
+        <p>Queremos ver cómo has acabado la tarea</p>
+        <img src="./imagenes/sticker-tarea.png" alt="" class="sticker-foto-tarea">
+      </div>
+      <label for="foto-tarea">Añadir foto (opcional)</label>
+      <input id="foto-tarea" type="file" accept="image/jpeg,image/png,image/webp">
+      <p class="ayuda-foto-tarea">JPG, PNG o WebP de hasta 600 KB. Tus compañeros podrán ver y comentar la foto.</p>
+      <p id="error-completar-tarea" role="status"></p>
+      <div class="acciones-completar-tarea">
+        <button type="button" id="cancelar-completar-tarea">Cancelar</button>
+        <button type="submit">Marcar como hecha</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialogo-evento" aria-labelledby="titulo-dialogo-evento">
+    <form id="formulario-evento">
+      <h2 id="titulo-dialogo-evento">Añadir evento</h2>
+      <p id="autor-evento"></p>
+      <label for="evento-titulo">Título</label>
+      <input id="evento-titulo" name="titulo" maxlength="100" required>
+      <label for="evento-fecha">Fecha</label>
+      <input id="evento-fecha" name="fecha" type="date" required>
+      <label class="opcion-todo-dia"><input id="evento-todo-dia" type="checkbox"> Todo el día</label>
+      <label for="evento-hora">Hora</label>
+      <input id="evento-hora" name="hora" type="time">
+      <label for="evento-descripcion">Descripción (opcional)</label>
+      <textarea id="evento-descripcion" name="descripcion" maxlength="1000" rows="3"></textarea>
+      <p id="error-evento" role="status"></p>
+      <div class="acciones-evento">
+        <button id="cerrar-evento" type="button">Cancelar</button>
+        <button id="eliminar-evento" type="button" hidden>Eliminar</button>
+        <button id="guardar-evento" type="submit">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dialogo-compra" aria-labelledby="titulo-dialogo-compra">
+    <form id="formulario-compra">
+      <h2 id="titulo-dialogo-compra">Crear Nueva Lista</h2>
+      <div id="campo-lista-compra">
+        <label for="nombre-lista-compra">Nombre de la lista</label>
+        <input id="nombre-lista-compra" maxlength="60">
+      </div>
+      <div id="campos-producto-compra" hidden>
+        <p id="destino-producto-compra"></p>
+        <label for="nombre-producto-compra">Nombre producto</label>
+        <input id="nombre-producto-compra" maxlength="100" placeholder="Nombre del producto">
+        <label for="cantidad-producto-compra">Cantidad (opcional)</label>
+        <input id="cantidad-producto-compra" maxlength="40" placeholder="Por ejemplo, 2 litros">
+      </div>
+      <p id="error-compra" role="status"></p>
+      <div class="acciones-compra">
+        <button id="cancelar-compra" type="button">Cancelar</button>
+        <button id="guardar-compra" type="submit">Crear lista</button>
+      </div>
+    </form>
+  </dialog>
+  <script type="module" src="./piso.js"></script>
+</body>
+</html>

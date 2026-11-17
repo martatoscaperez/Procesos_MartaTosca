@@ -101,6 +101,8 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
 
   // Las rutas protegidas rechazan peticiones sin sesión.
   for (const [ruta, metodo] of [
+    ['/api/hogares', 'GET'],
+    ['/api/hogares', 'POST'],
     ['/api/usuarios', 'GET'],
     ['/api/usuarios/sesion@example.com/activo', 'GET'],
     ['/api/usuarios/sesion@example.com', 'DELETE']
@@ -239,6 +241,43 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
     assert.deepEqual(await sesion.json(), usuario);
     assert.equal(sesion.headers.get('cache-control'), 'no-store');
   }
+
+  // La API de hogares utiliza la sesión y conserva los permisos del hogar.
+  const crearHogar = await fetch(`${baseUrl}/api/hogares`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre: 'Piso HTTP', solicitud: '550e8400-e29b-41d4-a716-446655440000' })
+  });
+  assert.equal(crearHogar.status, 201);
+  const hogarHttp = await crearHogar.json();
+  assert.equal(hogarHttp.rol, 'administrador');
+  const consultarHogar = await fetch(`${baseUrl}/api/hogares/${hogarHttp.id}`, {
+    headers: { Cookie: cookie }
+  });
+  assert.equal(consultarHogar.status, 200);
+  assert.equal((await consultarHogar.json()).miembros.length, 1);
+  const rutaTareas = `${baseUrl}/api/hogares/${hogarHttp.id}/tareas`;
+  const obtenerTareas = () => fetch(rutaTareas, { headers: { Cookie: cookie } });
+  const { hoy } = await (await obtenerTareas()).json();
+  const altaTarea = await fetch(rutaTareas, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ titulo: 'Limpiar la cocina', limite: hoy })
+  });
+  assert.equal(altaTarea.status, 201);
+  const { tareas: [tareaHttp] } = await (await obtenerTareas()).json();
+  assert.equal(tareaHttp.propia, true);
+  const completarTarea = await fetch(`${rutaTareas}/${tareaHttp.id}/completar`, {
+    method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: '{}'
+  });
+  assert.equal(completarTarea.status, 200);
+  assert.equal((await (await obtenerTareas()).json()).puntos, 1);
+  const origenAjeno = await fetch(`${baseUrl}/api/hogares`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/json', Origin: 'https://otro.example' },
+    body: JSON.stringify({ nombre: 'Otro', solicitud: '550e8400-e29b-41d4-a716-446655440001' })
+  });
+  assert.equal(origenAjeno.status, 403);
 
   // Cerramos la sesión.
   const logout = await fetch(`${baseUrl}/api/logout`, {

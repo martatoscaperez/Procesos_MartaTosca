@@ -1,3 +1,5 @@
+import { crearCanalAvisos } from './avisos-en-vivo.js';
+import { crearFinanzas } from './finanzas.js';
 // Capa API: recibe peticiones HTTP, llama a la lógica
 // y devuelve respuestas al cliente.
 import express from 'express';
@@ -16,6 +18,9 @@ import { crearCorreoConfirmacion } from './correo.js';
 import { crearServicioConfirmacion } from './confirmacion.js';
 import { crearOAuthGoogle } from './oauth-google.js';
 import { crearServicioIdentidadGoogle } from './identidad-google.js';
+import { crearRepositorioHogaresPostgres, crearRepositorioHogaresMemoria } from './datos-hogares.js';
+import { crearServicioHogares } from './hogares.js';
+import { crearApiHogares } from './api-hogares.js';
 
 // Creamos la aplicación Express.
 const app = express();
@@ -57,10 +62,14 @@ try {
 const puerto = process.env.PORT || 3000;
 
 // Permite leer el cuerpo JSON de las peticiones.
+app.use('/api/hogares', express.json({ limit: '850kb' }));
 app.use(express.json());
 
 // Los errores de lectura del cuerpo también se devuelven en JSON.
 app.use((error, req, res, next) => {
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Los datos son demasiado grandes. Si adjuntaste una foto, usa una de hasta 600 KB.' });
+  }
   if (error.status === 400) {
     return res.status(400).json({
       error: 'El cuerpo debe ser JSON válido.'
@@ -189,6 +198,12 @@ async function exigirSesion(req, res, next) {
 
   next();
 }
+
+const repositorioHogares = usarMemoria
+  ? crearRepositorioHogaresMemoria(repositorioUsuarios)
+  : crearRepositorioHogaresPostgres(conexion);
+const servicioHogares = crearServicioHogares(repositorioHogares);
+app.use('/api/hogares', exigirSesion, crearApiHogares(servicioHogares, crearFinanzas(conexion, servicioHogares), crearCanalAvisos(conexion)));
 
 // Solo permite continuar a un administrador.
 function exigirAdministrador(req, res, next) {
@@ -520,7 +535,13 @@ if (
 }
 
 // Arrancamos el servidor para escuchar peticiones.
-const servidor = app.listen(puerto, () => {
+const servidor = app.listen(puerto, error => {
+  if (error) {
+    console.error(error.code === 'EADDRINUSE'
+      ? `El puerto ${puerto} ya está ocupado. Cierra el servidor anterior con Ctrl+C antes de ejecutar npm start.`
+      : `No se pudo iniciar el servidor en el puerto ${puerto}: ${error.message}`);
+    process.exit(1);
+  }
   const puertoAsignado = servidor.address().port;
   console.log(`Servidor en http://localhost:${puertoAsignado}`);
 });

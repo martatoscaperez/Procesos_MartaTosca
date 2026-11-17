@@ -19,6 +19,7 @@ test(
     try {
       cliente = await conexion.connect();
       await cliente.query('BEGIN');
+      await cliente.query('DISCARD TEMP');
 
       // La tabla temporal solo existe en esta conexión.
       // Oculta la tabla real para las consultas de esta prueba.

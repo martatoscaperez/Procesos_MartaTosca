@@ -3,36 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Proyecto de Procesos</title>
+  <title>HogarDu · Tu hogar, organizado</title>
 
   <!-- Los estilos están separados del contenido. -->
   <link rel="stylesheet" href="./estilos.css">
 </head>
-<body>
-  <header class="cabecera">
-    <h1>Proyecto de Procesos</h1>
-    <p id="estado-servidor" role="status">Servidor: comprobando…</p>
-  </header>
-
-  <main>
-    <section class="tarjeta">
-      <h2>Accede a tu cuenta</h2>
-      <p id="acceso-google" hidden>
-        <a class="boton-google" href="/api/auth/google">Continuar con Google</a>
-      </p>
-
-      <!-- Botones para cambiar entre los dos formularios. -->
-      <div class="pestanas">
-        <button id="mostrar-login" type="button" aria-pressed="true">
-          Iniciar sesión
-        </button>
-        <button id="mostrar-registro" type="button" aria-pressed="false">
-          Crear cuenta
-        </button>
+<body class="pagina-acceso">
+  <main class="acceso-distribucion">
+    <header class="marca-acceso">
+      <div class="personajes-acceso">
+        <button type="button" aria-label="Sorprender al fantasma rosa"><img src="./imagenes/fantasma-rosa.png" alt=""></button>
+        <button type="button" aria-label="Sorprender al fantasma azul"><img src="./imagenes/fantasma-azul.png" alt=""></button>
+        <button type="button" aria-label="Sorprender al murciélago"><img src="./imagenes/murcielago.png" alt=""></button>
+        <button type="button" aria-label="Sorprender a la esfera verde"><canvas width="128" height="128" aria-hidden="true"></canvas></button>
       </div>
-
+      <h1>Hogar<span>Du</span></h1>
+      <p>Un espacio para organizar el día a día de vuestro hogar.</p>
+    </header>
+    <img class="logo-hogardo" src="./imagenes/logo-hogardo.png?v=2" alt="HogarDu" width="1536" height="1024">
+    <aside class="presentacion" aria-labelledby="titulo-presentacion">
+      <h1 id="titulo-presentacion">Todo lo que compartís,<br>un poco más fácil.</h1>
+      <p class="presentacion-descripcion">Un espacio para organizar el día a día de vuestro hogar.</p>
+      <ul class="utilidades">
+        <li>
+          <span class="utilidad-icono" aria-hidden="true">€</span>
+          <div><h2>Gastos claros</h2><p>Repartid los gastos y llevad las cuentas del piso.</p></div>
+        </li>
+        <li>
+          <span class="utilidad-icono" aria-hidden="true">✓</span>
+          <div><h2>Tareas bien repartidas</h2><p>Organizad la limpieza y los turnos entre compañeros.</p></div>
+        </li>
+        <li>
+          <span class="utilidad-icono" aria-hidden="true">＋</span>
+          <div><h2>La compra, en equipo</h2><p>Apuntad lo que falta y marcad lo que ya está comprado.</p></div>
+        </li>
+        <li>
+          <span class="utilidad-icono" aria-hidden="true">⌂</span>
+          <div><h2>Un hogar conectado</h2><p>Compartid normas, planes y avisos en un mismo lugar.</p></div>
+        </li>
+      </ul>
+    </aside>
+    <section class="tarjeta">
+      <div id="acceso-animado" class="acceso-animado">
       <form id="formulario-login">
-        <h3>Iniciar sesión</h3>
+        <h3 tabindex="-1">Iniciar sesión</h3>
+        <p id="acceso-google" hidden>
+          <a class="boton-google" href="/api/auth/google">Continuar con Google</a>
+        </p>
 
         <label for="login-email">Email</label>
         <input id="login-email" name="email" type="email"
@@ -43,14 +60,15 @@
                autocomplete="current-password" required>
 
         <button type="submit">Entrar</button>
-        <button id="reenviar-confirmacion" type="button">
+        <div class="aviso-login"></div>
+        <button id="reenviar-confirmacion" type="button" hidden>
           Reenviar correo de confirmación
         </button>
       </form>
 
       <!-- hidden mantiene el formulario oculto inicialmente. -->
       <form id="formulario-registro" hidden>
-        <h3>Crear cuenta</h3>
+        <h3 tabindex="-1">Crear cuenta</h3>
 
         <label for="registro-email">Email</label>
         <input id="registro-email" name="email" type="email"
@@ -71,9 +89,48 @@
         <button type="submit">Crear cuenta</button>
       </form>
 
+        <div class="panel-acceso-morado">
+          <div id="saludo-login">
+            <h2>¡Hola!</h2>
+            <p>Crea tu cuenta para empezar a organizar tu piso.</p>
+            <button id="mostrar-registro" type="button" aria-controls="formulario-registro">Crear cuenta</button>
+          </div>
+          <div id="saludo-registro" hidden>
+            <h2>¡Bienvenido de nuevo!</h2>
+            <p>Entra en tu cuenta para volver a tu piso.</p>
+            <button id="mostrar-login" type="button" aria-controls="formulario-login">Iniciar sesión</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Se muestra cuando el usuario tiene una sesión iniciada. -->
       <div id="panel-sesion" hidden>
-        <p id="usuario-conectado"></p>
+        <div id="bienvenida-pisos">
+        <h2 id="usuario-conectado" tabindex="-1"></h2>
+        <p class="bienvenida-descripcion">Crea un nuevo piso o utiliza un código de invitación para empezar.</p>
+        <div class="opciones-piso" aria-label="Cómo empezar">
+          <button id="elegir-crear-piso" type="button" aria-controls="pantalla-crear-piso">
+            <span aria-hidden="true">＋</span>
+            <span>Crear un nuevo piso compartido</span>
+          </button>
+          <button id="elegir-invitacion" type="button" aria-expanded="false" aria-controls="formulario-unirse">
+            <span aria-hidden="true">⌂</span>
+            <span>Utilizar un código de invitación</span>
+          </button>
+        </div>
+        <form id="formulario-unirse" class="formulario-piso" hidden>
+          <h3>Únete a tus compañeros</h3>
+          <label for="codigo-invitacion">Código de invitación</label>
+          <input id="codigo-invitacion" name="codigo" maxlength="20" minlength="20" autocomplete="off" spellcheck="false" required>
+          <button type="submit">Unirme al piso</button>
+        </form>
+        <p id="mensaje-hogares" role="status"></p>
+        <div id="mis-hogares" hidden>
+          <label for="selector-hogar">Entrar en Mis Pisos</label>
+          <select id="selector-hogar"></select>
+        </div>
+        <details class="ajustes-cuenta" id="opciones-cuenta">
+          <summary>Opciones de mi cuenta</summary>
         <p id="vinculo-google" hidden>
           <a class="boton-google" href="/api/auth/google?vincular=1">Vincular Google a mi cuenta</a>
         </p>
@@ -81,12 +138,73 @@
         <button id="cerrar-sesion" type="button">
            Cerrar sesión
         </button>
+        </details>
+        </div>
+  <section hidden id="pantalla-crear-piso" aria-labelledby="titulo-crear-piso">
+    <form id="formulario-crear-piso">
+      <button id="volver-crear-piso" type="button">← Volver</button>
+      <h2 id="titulo-crear-piso" tabindex="-1">Crea tu piso compartido</h2>
+      <p id="progreso-crear-piso" role="status">Paso 1 de 3</p>
+      <div class="paso-crear-piso">
+      <h3 tabindex="-1">Añade una foto a tu nuevo piso</h3>
+      <label for="foto-piso">Foto del piso (opcional)</label>
+      <input id="foto-piso" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="ayuda-foto-piso">
+      <small id="ayuda-foto-piso">JPG, PNG o WebP de hasta 600 KB.</small>
+      <img id="vista-foto-piso" class="foto-piso" alt="Vista previa de la foto" hidden>
+      </div>
+      <div class="paso-crear-piso" hidden>
+      <h3 tabindex="-1">Nombre del piso</h3>
+      <label for="nombre-piso">Nombre del piso</label>
+      <div class="campo-con-contador">
+        <input id="nombre-piso" name="nombre" maxlength="30" placeholder="El piso de la plaza" aria-describedby="contador-nombre-piso" required>
+        <span id="contador-nombre-piso">0/30</span>
+      </div>
+      </div>
+      <div class="paso-crear-piso" hidden>
+      <h3 tabindex="-1">Moneda del piso</h3>
+      <label for="moneda-piso">Moneda del piso</label>
+      <select id="moneda-piso" name="moneda">
+        <option value="EUR">Euro (EUR)</option>
+        <option value="USD">Dólar estadounidense (USD)</option>
+        <option value="GBP">Libra esterlina (GBP)</option>
+        <option value="CHF">Franco suizo (CHF)</option>
+        <option value="MXN">Peso mexicano (MXN)</option>
+      </select>
+      </div>
+      <button id="siguiente-crear-piso" type="button">Siguiente →</button>
+      <button id="confirmar-crear-piso" type="submit" hidden>Crear piso</button>
+      <p id="mensaje-crear-piso" role="status"></p>
+    </form>
+  </section>
+  <section hidden id="pantalla-invitar-piso" aria-labelledby="titulo-invitar-piso">
+    <div class="contenido-invitacion">
+      <div>
+        <h2 id="titulo-invitar-piso" tabindex="-1">Invita a tus compañeros</h2>
+        <p id="piso-creado"></p>
+        <div class="acciones-invitacion">
+          <button id="compartir-enlace-piso" type="button">Compartir enlace</button>
+          <button id="copiar-enlace-piso" type="button">Copiar enlace de la invitación</button>
+          <button id="compartir-codigo-piso" type="button">Compartir el código de invitación</button>
+        </div>
+        <input id="enlace-piso-creado" type="hidden">
+        <label for="codigo-piso-creado">Código de invitación</label>
+        <input id="codigo-piso-creado" readonly>
+        <p id="mensaje-invitar-piso" role="status"></p>
+      </div>
+      <button id="mudarse-al-piso" type="button">Mudarse al piso</button>
+    </div>
+  </section>
       </div>  
       <!-- Espacio para mostrar el resultado de las acciones. -->
       <p id="mensaje" role="status"></p>
     </section>
   </main>
 
+
+
+
+
   <script type="module" src="./controlador.js"></script>
+  <script type="module" src="./personajes-acceso.js"></script>
 </body>
 </html>

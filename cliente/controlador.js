@@ -1,7 +1,7 @@
 // Capa de presentación: consulta la API mediante rest.js
 // y actualiza lo que ve el usuario.
+import { mostrarHogares } from './hogares.js';
 import {
-  consultarEstado,
   registrarUsuario,
   iniciarSesion,
   consultarSesion,
@@ -11,16 +11,20 @@ import {
 } from './comunicacion/rest.js';
 
 // Localizamos los elementos de la página.
-const indicadorServidor = document.getElementById('estado-servidor');
 const botonLogin = document.getElementById('mostrar-login');
 const botonRegistro = document.getElementById('mostrar-registro');
 const formularioLogin = document.getElementById('formulario-login');
 const formularioRegistro = document.getElementById('formulario-registro');
 const mensaje = document.getElementById('mensaje');
+const avisoLogin = formularioLogin.querySelector('.aviso-login');
+const tarjetaAcceso = mensaje.parentElement;
+avisoLogin.append(mensaje);
 const panelSesion = document.getElementById('panel-sesion');
 const usuarioConectado = document.getElementById('usuario-conectado');
 const botonCerrarSesion = document.getElementById('cerrar-sesion');
-const pestanas = document.querySelector('.pestanas');
+const accesoAnimado = document.getElementById('acceso-animado');
+const saludoLogin = document.getElementById('saludo-login');
+const saludoRegistro = document.getElementById('saludo-registro');
 const botonReenviar = document.getElementById('reenviar-confirmacion');
 const accesoGoogle = document.getElementById('acceso-google');
 const vinculoGoogle = document.getElementById('vinculo-google');
@@ -60,45 +64,46 @@ botonReenviar.addEventListener('click', async () => {
   }
 });
 
-// Consulta el servidor y muestra si está disponible.
-async function mostrarEstadoServidor() {
-  try {
-    await consultarEstado();
-    indicadorServidor.textContent = 'Servidor: ok';
-  } catch (error) {
-    indicadorServidor.textContent = 'Servidor: no disponible';
-    console.error(error);
-  }
-}
-
 // Muestra un formulario y oculta el otro.
 function cambiarFormulario(mostrarLogin) {
+  botonReenviar.hidden = true;
   formularioLogin.hidden = !mostrarLogin;
   formularioRegistro.hidden = mostrarLogin;
+  (mostrarLogin ? avisoLogin : tarjetaAcceso).append(mensaje);
 
-  botonLogin.setAttribute('aria-pressed', String(mostrarLogin));
-  botonRegistro.setAttribute('aria-pressed', String(!mostrarLogin));
+  accesoAnimado.classList.toggle('modo-registro', !mostrarLogin);
+  saludoLogin.hidden = !mostrarLogin;
+  saludoRegistro.hidden = mostrarLogin;
 
   mensaje.textContent = '';
 }
 
 // Actualiza la interfaz según haya sesión o no.
 function mostrarSesion(usuario) {
+  botonReenviar.hidden = true;
   const conectado = usuario !== null;
   sesionConectada = conectado;
   mostrarGoogle();
 
   panelSesion.hidden = !conectado;
-  pestanas.hidden = conectado;
+  accesoAnimado.hidden = conectado;
+  if (conectado) tarjetaAcceso.append(mensaje);
+  mostrarHogares(usuario);
   formularioLogin.hidden = conectado;
   formularioRegistro.hidden = true;
 
   usuarioConectado.textContent = conectado
-    ? `Conectado como ${usuario.nombre}.`
+    ? `Hola, ${usuario.nombre}.`
     : '';
 
   if (!conectado) {
     cambiarFormulario(true);
+  }
+  if (conectado && location.hash === '#opciones-cuenta') {
+    const opciones = document.getElementById('opciones-cuenta');
+    opciones.open = true;
+    opciones.scrollIntoView({ block: 'nearest' });
+    opciones.querySelector('summary').focus({ preventScroll: true });
   }
 }
 
@@ -115,13 +120,19 @@ async function recuperarSesion() {
 // Asociamos cada botón con su acción.
 botonLogin.addEventListener('click', () => {
   cambiarFormulario(true);
+  formularioLogin.querySelector('h3').focus({ preventScroll: true });
 });
 
 botonRegistro.addEventListener('click', () => {
   cambiarFormulario(false);
+  formularioRegistro.querySelector('h3').focus({ preventScroll: true });
 });
 
 // Envía las credenciales y muestra el resultado del login.
+formularioLogin.addEventListener('input', () => {
+  botonReenviar.hidden = true;
+});
+
 formularioLogin.addEventListener('submit', async (evento) => {
   evento.preventDefault();
 
@@ -133,6 +144,7 @@ formularioLogin.addEventListener('submit', async (evento) => {
   );
 
   botonEnviar.disabled = true;
+  botonReenviar.hidden = true;
   mensaje.textContent = 'Iniciando sesión…';
 
   try {
@@ -140,9 +152,16 @@ formularioLogin.addEventListener('submit', async (evento) => {
 
     formularioLogin.reset();
     mostrarSesion(usuario);
-    mensaje.textContent = `Has iniciado sesión como ${usuario.nombre}.`;
+    mensaje.textContent = '';
+    usuarioConectado.focus();
   } catch (error) {
     mensaje.textContent = error.message;
+    const mismosDatos =
+      document.getElementById('login-email').value.trim() === email &&
+      document.getElementById('login-clave').value === clave;
+    botonReenviar.hidden =
+      error.message !== 'La cuenta está pendiente de confirmación.' ||
+      !mismosDatos || formularioLogin.hidden;
   } finally {
     botonEnviar.disabled = false;
   }
@@ -209,8 +228,7 @@ formularioRegistro.addEventListener('submit', async (evento) => {
   }
 });
 
-// Comprobamos el servidor y recuperamos la sesión al cargar la página.
-mostrarEstadoServidor();
+// Recuperamos la sesión al cargar la página.
 prepararGoogle();
 recuperarSesion().then(() => {
   const parametros = new URLSearchParams(location.search);

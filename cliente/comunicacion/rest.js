@@ -1,5 +1,36 @@
 // Capa de comunicación: realiza peticiones a la API.
 // No modifica elementos de la interfaz.
+export async function solicitarHogares(ruta = '', datos) {
+  const controlador = new AbortController();
+  const temporizador = setTimeout(() => controlador.abort(), 15000);
+  try {
+    const respuesta = await fetch(`/api/hogares${ruta}`, {
+      signal: controlador.signal,
+      method: datos === undefined ? 'GET' : 'POST',
+      cache: 'no-store',
+      headers: datos === undefined ? undefined : { 'Content-Type': 'application/json' },
+      body: datos === undefined ? undefined : JSON.stringify(datos)
+    });
+    if (!respuesta.headers.get('content-type')?.includes('application/json')) {
+      if (respuesta.status === 413) throw new Error('La foto es demasiado grande. Usa una de hasta 600 KB.');
+      if (respuesta.status === 404) throw new Error('La función de pisos no está disponible en este servidor. Si estás en local, reinícialo con npm.cmd start.');
+      throw new Error('No se pudo contactar con la función de pisos. Recarga la página e inténtalo otra vez.');
+    }
+    const resultado = await respuesta.json();
+    if (!respuesta.ok) throw new Error(resultado.error || 'No se pudo acceder al piso.');
+    return resultado;
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(datos === undefined
+        ? 'La conexión está tardando demasiado. Vuelve a intentarlo.'
+        : 'No se pudo confirmar el guardado a tiempo. Comprueba el resultado antes de volver a intentarlo.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
 async function enviarConfirmacion(ruta, datos) {
   const respuesta = await fetch(ruta, {
     method: 'POST',
