@@ -15,8 +15,8 @@ test('PostgreSQL conserva pisos, membresías y permisos usando tablas temporales
     cliente = await conexion.connect();
     await cliente.query('BEGIN');
       await cliente.query('DISCARD TEMP');
-    await cliente.query("CREATE TEMP TABLE usuarios (email TEXT PRIMARY KEY, nombre TEXT NOT NULL, estado TEXT NOT NULL)");
-    await cliente.query(`INSERT INTO usuarios VALUES
+    await cliente.query("CREATE TEMP TABLE usuarios (email TEXT PRIMARY KEY, nombre TEXT NOT NULL, estado TEXT NOT NULL, foto_perfil TEXT)");
+    await cliente.query(`INSERT INTO usuarios (email,nombre,estado) VALUES
       ('marta@example.com','Marta','activo'), ('alex@example.com','Álex','activo')`);
     const sql = await readFile(new URL('../servidor/migracion-hogares.sql', import.meta.url), 'utf8');
     await cliente.query(sql.replaceAll('public.', '').replaceAll('CREATE TABLE IF NOT EXISTS', 'CREATE TEMP TABLE'));
@@ -43,6 +43,22 @@ test('PostgreSQL conserva pisos, membresías y permisos usando tablas temporales
     assert.equal(piso.rol, 'miembro');
     assert.equal(piso.moneda, 'GBP');
     assert.equal(piso.foto, foto);
+    await cliente.query("UPDATE usuarios SET foto_perfil=$1 WHERE email='marta@example.com'", [foto]);
+    assert.equal((await servicio.consultar(hogar.id, 'alex@example.com')).miembros.find(miembro => miembro.nombre === 'Marta').foto, foto);
+    await servicio.guardarAviso(hogar.id, 'marta@example.com', randomUUID(), 'Hola con mi foto de perfil');
+    assert.equal((await servicio.avisos(hogar.id, 'alex@example.com')).avisos[0].foto, foto);
+    await cliente.query("UPDATE usuarios SET foto_perfil=NULL WHERE email='marta@example.com'");
+    assert.equal((await servicio.avisos(hogar.id, 'alex@example.com')).avisos[0].foto, null);
+    await assert.rejects(servicio.editarPerfil(hogar.id, 'alex@example.com', { nombre: 'Sin permiso' }), { status: 403 });
+    const repositorioPerfil = crearRepositorioHogaresPostgres(conexionTemporal);
+    assert.equal(await repositorioPerfil.editarPerfil(hogar.id, 'alex@example.com', { nombre: 'Sin permiso' }), false);
+    await servicio.editarPerfil(hogar.id, 'marta@example.com', { nombre: 'Piso renovado' });
+    const renovado = await servicio.consultar(hogar.id, 'alex@example.com');
+    assert.equal(renovado.nombre, 'Piso renovado');
+    assert.equal(renovado.foto, foto);
+    await servicio.editarPerfil(hogar.id, 'marta@example.com', { nombre: 'Piso renovado', foto: null });
+    assert.equal((await servicio.consultar(hogar.id, 'alex@example.com')).foto, null);
+    await servicio.editarPerfil(hogar.id, 'marta@example.com', { nombre: 'Piso plaza', foto });
     const alex = piso.miembros.find(miembro => miembro.propia);
     const { hoy } = await servicio.tareas(hogar.id, 'alex@example.com');
     await servicio.crearTarea(hogar.id, 'marta@example.com', {

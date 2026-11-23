@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { validarFoto } from './imagenes.js';
 import { randomBytes, createHash } from 'node:crypto';
 import {
   obtenerEstadoDatos,
@@ -51,7 +52,8 @@ function obtenerDatosPublicos(usuario) {
     email: usuario.email,
     nombre: usuario.nombre,
     rol: usuario.rol,
-    estado: usuario.estado
+    estado: usuario.estado,
+    ...(usuario.foto ? { foto: usuario.foto } : {})
   };
 }
 
@@ -60,6 +62,26 @@ export function crearServicioUsuarios(
   repositorio = crearRepositorioUsuarios()
 ) {
   return {
+    async consultarPerfil(email) {
+      const usuario = await repositorio.buscarPorEmail(normalizarEmail(email));
+      if (!usuario || usuario.estado !== 'activo') throw Object.assign(new Error('La cuenta no está disponible.'), { status: 404 });
+      return {
+        email: usuario.email, nombre: usuario.nombre, foto: usuario.foto ?? null,
+        accesoGoogle: Boolean(usuario.googleSub), accesoClave: typeof usuario.claveHash === 'string'
+      };
+    },
+    async editarPerfil(email, datos) {
+      if (typeof datos?.nombre !== 'string' || !datos.nombre.trim() || datos.nombre.trim().length > 60) {
+        throw Object.assign(new Error('Escribe un nombre de hasta 60 caracteres.'), { status: 400 });
+      }
+      const cambios = { nombre: datos.nombre.trim() };
+      if (Object.hasOwn(datos, 'foto')) {
+        validarFoto(datos.foto);
+        cambios.foto = datos.foto;
+      }
+      if (!await repositorio.actualizarPerfil(normalizarEmail(email), cambios)) throw Object.assign(new Error('La cuenta no está disponible.'), { status: 404 });
+      return this.consultarPerfil(email);
+    },
     async agregarUsuario(email, nombre, clave) {
       const emailNormalizado = normalizarEmail(email);
       if (!/^[^\s@<>,;:]+@[^\s@<>,;:]+\.[^\s@<>,;:]+$/.test(emailNormalizado)) {

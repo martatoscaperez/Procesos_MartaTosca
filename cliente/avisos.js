@@ -8,7 +8,7 @@ export function prepararAvisos(id) {
   async function cargar(){if(cargando){pendiente=true;return;}if(document.hidden){pendiente=true;return;}pendiente=false;cargando=true;
     try{const datos=await solicitarHogares(ruta);
       $('punto-avisos').hidden=!datos.sinLeer;
-      const nuevaFirma=JSON.stringify(datos.avisos.map(a=>[a.id,a.texto,a.editado,a.nombre]));
+      const nuevaFirma=JSON.stringify(datos.avisos.map(a=>[a.id,a.texto,a.editado,a.nombre,a.foto]));
       if(nuevaFirma!==firma){
         const bajar=lista.scrollHeight-lista.scrollTop-lista.clientHeight<70;
         const fragmento=document.createDocumentFragment();let separador=false;
@@ -16,6 +16,13 @@ export function prepararAvisos(id) {
           if(a.nuevo&&!separador){fragmento.append(nodo('div','Mensajes nuevos','separador-avisos'));separador=true;}
           const fila=nodo('article','','mensaje-aviso'+(a.propio?' aviso-propio':''));
           const avatar=nodo('span',[...a.nombre.trim()][0]?.toUpperCase()||'?','avatar-aviso');avatar.setAttribute('aria-hidden','true');
+          if (a.foto) {
+            const imagen = document.createElement('img');
+            imagen.alt = '';
+            imagen.src = a.foto;
+            imagen.addEventListener('error', () => { avatar.textContent = [...a.nombre.trim()][0]?.toUpperCase() || '?'; }, { once: true });
+            avatar.replaceChildren(imagen);
+          }
           const contenido=document.createElement('div'),cabecera=nodo('header','','cabecera-aviso');cabecera.append(nodo('strong',a.nombre));
           const fecha=nodo('time',new Date(a.fecha).toLocaleString('es-ES',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}));fecha.dateTime=a.fecha;cabecera.append(fecha);if(a.editado)cabecera.append(nodo('small','editado'));
           if(a.propio){const menu=document.createElement('details');menu.className='menu-aviso';const resumen=nodo('summary','⋯');resumen.setAttribute('aria-label','Opciones de tu aviso');const opciones=document.createElement('div'),editar=nodo('button','Editar'),eliminar=nodo('button','Eliminar');editar.type=eliminar.type='button';

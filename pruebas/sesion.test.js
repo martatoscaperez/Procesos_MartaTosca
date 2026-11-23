@@ -103,6 +103,8 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
   for (const [ruta, metodo] of [
     ['/api/hogares', 'GET'],
     ['/api/hogares', 'POST'],
+    ['/api/cuenta', 'GET'],
+    ['/api/cuenta', 'POST'],
     ['/api/usuarios', 'GET'],
     ['/api/usuarios/sesion@example.com/activo', 'GET'],
     ['/api/usuarios/sesion@example.com', 'DELETE']
@@ -154,6 +156,23 @@ test('la API mantiene la sesión y aplica los permisos de usuarios y administrad
   assert.match(cookieCompleta, /HttpOnly/i);
 
   const cookie = cookieCompleta.split(';')[0];
+  const perfilInicial = await fetch(`${baseUrl}/api/cuenta`, { headers: { Cookie: cookie } });
+  assert.equal(perfilInicial.status, 200);
+  assert.equal((await perfilInicial.json()).email, usuario.email);
+  const cambiarPerfil = datos => fetch(`${baseUrl}/api/cuenta`, {
+    method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
+  });
+  assert.equal((await cambiarPerfil({ nombre: ' ' })).status, 400);
+  const fotoPerfil = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jO1kAAAAASUVORK5CYII=';
+  const editado = await cambiarPerfil({ nombre: 'Nombre editado', foto: fotoPerfil, email: 'otra@example.com', rol: 'administrador' });
+  assert.equal(editado.status, 200);
+  const perfilEditado = await editado.json();
+  assert.equal(perfilEditado.nombre, 'Nombre editado');
+  assert.equal(perfilEditado.email, usuario.email);
+  assert.equal(perfilEditado.foto, fotoPerfil);
+  const sesionEditada = await fetch(`${baseUrl}/api/sesion`, { headers: { Cookie: cookie } });
+  assert.equal((await sesionEditada.json()).rol, 'usuario');
+  assert.equal((await cambiarPerfil({ nombre: usuario.nombre, foto: null })).status, 200);
 
   // El usuario normal no puede realizar consultas de administrador.
   for (const ruta of [

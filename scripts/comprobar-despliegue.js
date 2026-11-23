@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 
 // Prueba manual contra un hogar de validación: nunca utiliza el piso habitual.
 const opciones = Object.fromEntries(process.argv.slice(2).map((v, i, args) =>
@@ -12,6 +13,8 @@ const base = new URL(opciones.url).origin;
 const ruta = `/api/hogares/${opciones.hogar}`;
 const resultados = [];
 const sesiones = [];
+const restauraciones = [];
+const fotoPrueba = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jO1kAAAAASUVORK5CYII=';
 let aviso;
 let lector;
 let canal;
@@ -43,6 +46,14 @@ async function entrar(email, clave) {
   return cookie;
 }
 try {
+  for (const archivo of ['index.html', 'piso.html', 'tema-hogardu.css', 'ranking.js', 'cuenta.js', 'avisos.js']) {
+    const respuesta = await solicitar('/' + archivo);
+    assert.equal(respuesta.status, 200, `No se sirve ${archivo}.`);
+    const actual = await respuesta.text();
+    const esperado = await readFile(new URL('../cliente/' + archivo, import.meta.url), 'utf8');
+    assert.equal(actual.replaceAll('\r\n', '\n'), esperado.replaceAll('\r\n', '\n'), `La versión publicada de ${archivo} está desactualizada.`);
+  }
+  comprobar('La web publicada contiene el diseño y los módulos actuales', true);
   const a = await entrar(process.env.USUARIO_PRUEBA_EMAIL, process.env.USUARIO_PRUEBA_CLAVE);
   const b = await entrar(process.env.ADMIN_EMAIL, process.env.ADMIN_CLAVE);
   comprobar('Dos sesiones independientes', a !== b);
@@ -53,6 +64,38 @@ try {
     hb.datos.nombre === ha.datos.nombre && ha.datos.rol === 'administrador' && hb.datos.rol === 'miembro');
   comprobar('Un hogar ajeno no permite acceder',
     (await solicitar('/api/hogares/' + randomUUID(), b)).status === 404);
+  comprobar('El miembro no puede cambiar el nombre ni la foto del piso',
+    (await solicitar(ruta + '/perfil', b, { nombre: 'No se debe guardar', foto: null })).status === 403);
+  const originales = await json('/api/cuenta', b);
+  assert.equal(originales.estado, 200);
+  const sesionOriginal = await json('/api/sesion', b);
+  assert.equal(sesionOriginal.estado, 200);
+  restauraciones.push(async () => {
+    assert.equal((await solicitar('/api/cuenta', b, { nombre: originales.datos.nombre, foto: originales.datos.foto })).status, 200);
+  });
+  const perfil = await json('/api/cuenta', b, {
+    nombre: 'Cuenta de validación', foto: fotoPrueba,
+    email: 'no-cambiar@example.com', rol: 'administrador'
+  });
+  comprobar('El perfil personal guarda nombre y foto y conserva el correo',
+    perfil.estado === 200 && perfil.datos.nombre === 'Cuenta de validación' &&
+    perfil.datos.foto === fotoPrueba && perfil.datos.email === originales.datos.email);
+  const sesionPerfil = await json('/api/sesion', b);
+  comprobar('Editar el perfil conserva los permisos de la cuenta',
+    sesionPerfil.estado === 200 && sesionPerfil.datos.rol === sesionOriginal.datos.rol);
+  const miembroB = hb.datos.miembros.find(m => m.propia);
+  const hogarVistoPorA = await json(ruta, a);
+  comprobar('La segunda cuenta ve la foto personal actualizada',
+    hogarVistoPorA.datos.miembros.some(m => m.id === miembroB.id && m.nombre === 'Cuenta de validación' && m.foto === fotoPrueba));
+  restauraciones.push(async () => {
+    assert.equal((await solicitar(ruta + '/perfil', a, { nombre: ha.datos.nombre, foto: ha.datos.foto })).status, 200);
+  });
+  const pisoEditado = await json(ruta + '/perfil', a, { nombre: 'Validación Sprint 2 QA', foto: fotoPrueba });
+  const pisoRecargado = await json(ruta, b);
+  comprobar('El administrador cambia nombre y foto del piso y persisten al consultar',
+    pisoEditado.estado === 200 && pisoRecargado.datos.nombre === 'Validación Sprint 2 QA' && pisoRecargado.datos.foto === fotoPrueba);
+  await restauraciones.at(-1)();
+  restauraciones.pop();
   comprobar('El miembro no puede escribir normas',
     (await solicitar(ruta + '/normas/' + randomUUID(), b, { titulo: 'No se debe guardar', texto: '' })).status === 403);
   const tareas = await json(ruta + '/tareas', a);
@@ -98,6 +141,8 @@ try {
     assert.equal((await solicitar(ruta + '/avisos/' + aviso, b, { texto })).status, 200);
     const avisosA = await json(ruta + '/avisos', a);
     const avisosB = await json(ruta + '/avisos', b);
+    comprobar('El chat entrega la foto de perfil del autor a la otra cuenta',
+      avisosA.datos.avisos.some(v => v.id === aviso && v.foto === fotoPrueba));
     comprobar('Reintentar no duplica el mensaje', avisosA.datos.avisos.filter(v => v.id === aviso).length === 1);
     comprobar('La lectura es individual y los mensajes propios no notifican',
       avisosA.datos.avisos.some(v => v.id === aviso && v.nuevo) &&
@@ -122,6 +167,10 @@ try {
       console.error('No se pudo retirar el aviso temporal de prueba.');
       process.exitCode = 1;
     }
+  }
+  for (const restaurar of restauraciones.reverse()) {
+    try { await restaurar(); }
+    catch { console.error('No se pudo restaurar un dato temporal de validación.'); process.exitCode = 1; }
   }
   for (const cookie of sesiones) {
     await solicitar('/api/logout', cookie, {}).catch(() => {});

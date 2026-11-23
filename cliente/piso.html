@@ -6,6 +6,7 @@
   <title>Mi piso · HogarDu</title>
   <link rel="stylesheet" href="./estilos.css">
   <link rel="stylesheet" href="./tareas-editorial.css">
+  <link rel="stylesheet" href="./tema-hogardu.css">
 </head>
 <body class="pagina-piso">
   <header class="cabecera-piso">
@@ -170,26 +171,41 @@
         <ol id="lista-ranking"></ol>
       </section>
       <section id="cuenta" class="seccion-piso perfil-piso" aria-labelledby="titulo-perfil-piso" hidden>
-        <h2 id="titulo-perfil-piso">Mi perfil</h2>
-        <div class="identidad-piso">
+        <header class="cabecera-perfil"><p class="ceja-perfil">TU ESPACIO</p><h2 id="titulo-perfil-piso">Mi cuenta</h2><p class="descripcion-perfil">Tu perfil y el hogar que compartes.</p></header>
+        <div class="tarjeta-identidad-perfil"><div class="identidad-piso">
           <span id="avatar-perfil-piso" class="avatar-miembro" aria-hidden="true"></span>
-          <strong id="nombre-perfil-piso"></strong>
-        </div>
-        <p id="rol-perfil-piso"></p>
-        <div class="puntuacion-piso"><strong>Puntuación</strong><p id="puntos-piso">—</p></div>
-        <details class="configuracion-piso">
-          <summary>Configuración</summary>
-          <p id="moneda-configuracion-piso"></p>
-          <p><a href="./#mis-hogares">Mis pisos</a></p>
-          <a id="gestionar-piso" href="./">Gestionar mi piso</a>
-        </details>
-        <button id="abandonar-piso" type="button">Abandonar piso</button>
-        <button id="cerrar-sesion-piso" type="button">Cerrar sesión</button>
+          <div><strong id="nombre-perfil-piso"></strong><p id="rol-perfil-piso" class="insignia-rol"></p></div>
+        </div><button id="editar-mi-perfil" type="button">Editar mi perfil</button><div class="puntuacion-piso"><span>Este mes</span><p id="puntos-piso">—</p><a href="#ranking">Ver ranking ↗</a></div></div>
+        <section class="datos-personales" aria-labelledby="titulo-datos-personales"><h3 id="titulo-datos-personales">Datos de tu cuenta</h3><dl><div><dt>Correo electrónico</dt><dd id="correo-mi-perfil"></dd></div></dl><p id="estado-mi-cuenta" role="status"></p></section>
+        <section class="tarjeta-hogar-perfil" aria-labelledby="titulo-hogar-perfil">
+          <div class="foto-hogar-perfil"><img id="foto-hogar-perfil" alt="Foto del piso" hidden><span id="inicial-hogar-perfil" aria-hidden="true">⌂</span></div>
+          <div class="datos-hogar-perfil"><p class="ceja-perfil">TU PISO</p><h3 id="titulo-hogar-perfil"></h3><p id="resumen-miembros-perfil"></p><p id="moneda-configuracion-piso"></p></div>
+          <button id="editar-perfil-hogar" type="button" hidden>Editar piso</button>
+          <p id="ayuda-admin-perfil" class="ayuda-perfil">El administrador gestiona el nombre y la foto del piso.</p>
+        </section>
+        <div class="enlaces-perfil"><a id="gestionar-piso" href="./#mis-hogares">Ver mis pisos <span aria-hidden="true">↗</span></a></div>
+        <footer class="pie-perfil"><div><strong>Sesión y acceso</strong><p>Puedes cerrar tu sesión o dejar de formar parte de este piso.</p></div><div class="acciones-perfil"><button id="cerrar-sesion-piso" type="button">Cerrar sesión</button><button id="abandonar-piso" type="button">Abandonar piso</button></div></footer>
         <p id="error-cuenta-piso" role="status"></p>
       </section>
       </div>
     </div>
   </main>
+  <dialog id="dialogo-mi-perfil" aria-labelledby="titulo-editar-mi-perfil"><form id="formulario-mi-perfil">
+    <p class="ceja-perfil">TU PERFIL PERSONAL</p><h2 id="titulo-editar-mi-perfil">Así te verán tus compañeros</h2><p>Elige tu nombre y una foto para tu cuenta.</p>
+    <label for="nombre-mi-perfil">Nombre</label><input id="nombre-mi-perfil" name="nombre" maxlength="60" required autocomplete="name">
+    <div class="correo-perfil-fijo"><span>Correo electrónico</span><p id="correo-editar-perfil"></p></div>
+    <div class="editor-foto-hogar"><div class="foto-hogar-perfil foto-personal-editor"><img id="vista-foto-personal" alt="Vista previa de tu foto" hidden><span id="vista-inicial-personal" aria-hidden="true"></span></div><div><label for="archivo-foto-personal">Tu foto (opcional)</label><input id="archivo-foto-personal" type="file" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG o WebP · Hasta 600 KB.</small><button id="quitar-foto-personal" type="button">Quitar foto</button></div></div>
+    <p id="error-mi-perfil" role="status"></p><div class="acciones-gasto"><button id="cancelar-mi-perfil" type="button">Cancelar</button><button id="guardar-mi-perfil" type="submit">Guardar cambios</button></div>
+  </form></dialog>
+  <dialog id="dialogo-perfil-hogar" aria-labelledby="titulo-editar-hogar">
+    <form id="formulario-perfil-hogar">
+      <p class="ceja-perfil">CONFIGURACIÓN DEL PISO</p><h2 id="titulo-editar-hogar">Un hogar con identidad</h2>
+      <p>Cambia el nombre o la foto que veréis todos los compañeros.</p>
+      <label for="nombre-editar-hogar">Nombre del piso</label><input id="nombre-editar-hogar" name="nombre" required maxlength="30" autocomplete="off">
+      <div class="editor-foto-hogar"><div class="foto-hogar-perfil"><img id="vista-foto-hogar" alt="Vista previa de la foto del piso" hidden><span id="vista-inicial-hogar" aria-hidden="true">⌂</span></div><div><label for="archivo-foto-hogar">Foto del grupo (opcional)</label><input id="archivo-foto-hogar" type="file" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG o WebP · Hasta 600 KB.</small><button id="quitar-foto-hogar" type="button">Quitar foto</button></div></div>
+      <p id="estado-editar-hogar" role="status"></p><div class="acciones-gasto"><button id="cancelar-perfil-hogar" type="button">Cancelar</button><button id="guardar-perfil-hogar" type="submit">Guardar cambios</button></div>
+    </form>
+  </dialog>
   <dialog id="dialogo-editar-aviso" aria-labelledby="titulo-editar-aviso"><form id="formulario-editar-aviso"><h2 id="titulo-editar-aviso">Editar aviso</h2><label for="editar-texto-aviso">Mensaje</label><textarea id="editar-texto-aviso" name="texto" rows="5" required maxlength="2000"></textarea><p id="error-editar-aviso" role="status"></p><div class="acciones-gasto"><button type="button" id="cancelar-editar-aviso">Cancelar</button><button type="submit">Guardar cambios</button></div></form></dialog>
   <dialog id="dialogo-puntuaciones" aria-labelledby="titulo-puntuaciones">
     <h2 id="titulo-puntuaciones">Gestión de las puntuaciones</h2>
@@ -202,7 +218,7 @@
     </ul>
     <h3>Ranking del mes</h3>
     <p>Se suman las tareas cuya fecha límite pertenece al mes actual. Si no tienen fecha límite, cuentan en el mes en que se completan. Cada mes tiene su propia clasificación.</p>
-    <p>Los compañeros con la misma puntuación comparten puesto. Ocultar una tarea hecha no elimina sus puntos. Subir una foto o comentarla no cambia la puntuación.</p>
+    <p>Los compañeros con la misma puntuación comparten puesto, sin saltar posiciones: por ejemplo, 1.º, 1.º y 2.º. El podio muestra hasta tres personas y el resto aparece debajo con su puesto. Ocultar una tarea hecha no elimina sus puntos. Subir una foto o comentarla no cambia la puntuación.</p>
     <form method="dialog"><button type="submit">Entendido</button></form>
   </dialog>
   <dialog id="dialogo-norma" aria-labelledby="titulo-dialogo-norma"><form id="formulario-norma"><h2 id="titulo-dialogo-norma">Añadir norma</h2><label>Título<input name="titulo" required maxlength="100" placeholder="Por ejemplo, horario de descanso"></label><label>Norma (opcional)<textarea name="texto" maxlength="3000" rows="6" placeholder="Explica el acuerdo del piso…"></textarea></label><p id="error-norma" role="status"></p><div class="acciones-gasto"><button type="button" id="cancelar-norma">Cancelar</button><button type="submit">Guardar norma</button></div></form></dialog>

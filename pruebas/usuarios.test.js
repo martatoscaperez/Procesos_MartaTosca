@@ -4,6 +4,38 @@ import bcrypt from 'bcrypt';
 import { crearServicioUsuarios } from '../servidor/logica.js';
 import { crearRepositorioUsuarios } from '../servidor/datos.js';
 process.env.ALLOWED_DOMAINS = 'example.com';
+
+test('el perfil personal cambia nombre y foto sin alterar email, contraseña ni permisos', async () => {
+  const repositorio = crearRepositorioUsuarios();
+  const interno = { email: 'marta@example.com', nombre: 'Marta', estado: 'activo', rol: 'usuario', claveHash: 'hash-que-no-debe-cambiar', googleSub: 'identidad-google' };
+  repositorio.insertar(interno);
+  const servicio = crearServicioUsuarios(repositorio);
+  const foto = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jO1kAAAAASUVORK5CYII=';
+  const perfil = await servicio.editarPerfil(interno.email, { nombre: ' Marta nueva ', foto, email: 'ajeno@example.com', rol: 'administrador', claveHash: 'otro' });
+  assert.deepEqual(perfil, { email: interno.email, nombre: 'Marta nueva', foto, accesoGoogle: true, accesoClave: true });
+  const guardado = repositorio.buscarPorEmail(interno.email);
+  assert.equal(guardado.claveHash, interno.claveHash);
+  assert.equal(guardado.rol, 'usuario');
+  assert.equal(guardado.googleSub, interno.googleSub);
+  assert.equal(repositorio.buscarPorEmail('ajeno@example.com'), null);
+  await servicio.editarPerfil(interno.email, { nombre: 'Marta' });
+  assert.equal((await servicio.consultarPerfil(interno.email)).foto, foto);
+  await servicio.editarPerfil(interno.email, { nombre: 'Marta', foto: null });
+  assert.equal((await servicio.consultarPerfil(interno.email)).foto, null);
+});
+
+test('el perfil rechaza nombres, imágenes inválidas y cuentas inactivas', async () => {
+  const repositorio = crearRepositorioUsuarios();
+  repositorio.insertar({ email: 'marta@example.com', nombre: 'Marta', estado: 'activo' });
+  repositorio.insertar({ email: 'pendiente@example.com', nombre: 'Pendiente', estado: 'pendiente' });
+  const servicio = crearServicioUsuarios(repositorio);
+  for (const datos of [null, {}, {nombre:' '}, {nombre:'a'.repeat(61)}, {nombre:'Otro',foto:'https://example.com/foto'}, {nombre:'Otro',foto:'data:image/png;base64,aG9sYQ=='}]) {
+    await assert.rejects(servicio.editarPerfil('marta@example.com', datos));
+  }
+  await assert.rejects(servicio.editarPerfil('pendiente@example.com', { nombre: 'Otra' }));
+  await assert.rejects(servicio.consultarPerfil('inexistente@example.com'));
+  assert.equal((await servicio.consultarPerfil('marta@example.com')).nombre, 'Marta');
+});
 test('una cuenta nueva incluye nombre, rol y estado pendiente', async () => {
   const servicio = crearServicioUsuarios();
 

@@ -1,0 +1,307 @@
+/* Paleta compartida con el acceso. Solo presentación: conserva los estados y permisos. */
+body.pagina-piso {
+  --hogar-texto: #f7efff;
+  --hogar-secundario: #c2b5d5;
+  --hogar-linea: #c6a8f526;
+  --hogar-panel: #211630;
+  --hogar-acento: #d9b1ff;
+  --hogar-boton: linear-gradient(110deg, #96235f, #702c9c 58%, #205b79);
+  background: radial-gradient(ellipse at 10% 0%, #5a1c5f30, transparent 48%),
+    radial-gradient(ellipse at 100% 10%, #254b7730, transparent 55%), #130d1e;
+  background-attachment: fixed;
+  color: var(--hogar-texto);
+  accent-color: #bb8de9;
+  scrollbar-color: #6f5288 #181020;
+}
+body.pagina-piso .cabecera-piso {
+  background: #1a1228d9;
+  border-color: var(--hogar-linea);
+  backdrop-filter: blur(16px);
+}
+body.pagina-piso .contexto-piso-cabecera { color: var(--hogar-secundario); }
+body.pagina-piso #panel-piso #menu-piso {
+  background: radial-gradient(ellipse at 0% 40%, #77215c30, transparent 65%),
+    linear-gradient(160deg, #231a37, #161223);
+  border-right: 1px solid var(--hogar-linea);
+  box-shadow: 10px 0 40px #08041020;
+}
+body.pagina-piso #panel-piso #menu-piso a { color: #e7ddef; border-radius: 10px; }
+body.pagina-piso #panel-piso #menu-piso a:hover { background: #c69bff12; }
+body.pagina-piso #panel-piso #menu-piso a[aria-current="page"] {
+  background: linear-gradient(105deg, #8b28635c, #5b3f8859 65%, #28577640);
+  border-color: #d7b0ff38;
+  color: #f1c6ff;
+}
+body.pagina-piso #panel-piso #menu-piso .enlaces-convivencia { border-color: var(--hogar-linea); }
+body.pagina-piso #panel-piso #menu-piso .titulo-grupo-menu { color: #bba7d0; }
+body.pagina-piso #panel-piso #menu-piso .foto-piso-menu {
+  background: radial-gradient(ellipse at 20% 10%, #b06da363, transparent 65%),
+    linear-gradient(135deg, #3b2858, #1c3853);
+}
+body.pagina-piso #panel-piso #menu-piso .cuenta-barra {
+  background: #c99dff10;
+  border: 1px solid var(--hogar-linea);
+  border-radius: 12px;
+}
+body.pagina-piso :is(.texto-cuenta-barra small, .engrana-cuenta) { color: #cbb6e0; }
+body.pagina-piso :is(.avatar-miembro, .avatar-aviso) {
+  color: #f4dcff;
+  background: linear-gradient(140deg, #714178, #3b4779);
+  border: 1px solid #dfb4ff38;
+}
+body.pagina-piso .seccion-piso :is(h1, h2, h3) { color: var(--hogar-texto); }
+body.pagina-piso .saludo-inicio h1 { letter-spacing: -.035em; }
+body.pagina-piso :is(#fecha-inicio, #mes-ranking, .dato-gasto, .ayuda-gastos,
+  .datos-fila-tarea, .cantidad-compra, .detalle-reparto, .puntos-podio,
+  .ayuda-editar-tarea, .etiqueta-aviso) { color: var(--hogar-secundario); }
+body.pagina-piso .resumen-inicio {
+  gap: 18px;
+  border: 0;
+  padding-bottom: 0;
+}
+body.pagina-piso .resumen-inicio a {
+  flex: 1 1 190px;
+  padding: 24px;
+  border: 1px solid var(--hogar-linea);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #6e31632c, #28385b26);
+  box-shadow: inset 0 1px 0 #ffffff06;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+body.pagina-piso .resumen-inicio a:hover { border-color: #c69bff70; background-color: #ac7be309; }
+body.pagina-piso .resumen-inicio span { color: var(--hogar-secundario); }
+body.pagina-piso .columnas-inicio { gap: 24px; }
+body.pagina-piso .columnas-inicio > div {
+  padding: 24px;
+  border: 1px solid var(--hogar-linea);
+  border-radius: 18px;
+  background: #281b363d;
+}
+body.pagina-piso :is(.lider-inicio, #tareas-inicio li, #eventos-inicio li,
+  .lista-compra, .lista-compra li, .cabecera-fila-gasto, .fila-saldo,
+  #lista-normas > li, #lista-ranking li, .configuracion-piso, .puntuacion-piso,
+  .vistas-tareas, .pestanas-gastos, #enviar-aviso) { border-color: var(--hogar-linea); }
+body.pagina-piso :is(.vistas-tareas, .pestanas-gastos) { padding-bottom: 20px; }
+
+/* Botones de navegación, filtros y acciones. Los controles pequeños mantienen su forma. */
+body.pagina-piso #panel-piso :is(.vistas-tareas, .filtros-tareas, .pestanas-gastos, .filtros-saldos,
+  .acciones-calendario, .acciones-compra, .acciones-gasto, .acciones-evento,
+  .acciones-editar-tarea, .acciones-completar-tarea) button,
+body.pagina-piso :is(#abrir-gestion-puntuaciones, #crear-tarea button[type="submit"],
+  #formulario-loteria button, #enviar-aviso button, #cerrar-sesion-piso) {
+  color: #ece1fa;
+  background: #342641;
+  border: 1px solid #c9a5e93d;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 #ffffff08;
+  transition: filter 140ms ease, border-color 140ms ease;
+}
+body.pagina-piso #panel-piso :is(.vistas-tareas, .filtros-tareas, .pestanas-gastos, .filtros-saldos) button[aria-pressed="true"] {
+  color: #f9dfff;
+  background: linear-gradient(115deg, #8d2f685c, #59478173);
+  border-color: #ce94e777;
+}
+body.pagina-piso #panel-piso :is(#crear-tarea button[type="submit"], #formulario-loteria button,
+  #enviar-aviso button, #nuevo-evento, #nueva-lista-compra, #guardar-compra),
+body.pagina-piso :is(dialog, #completar-tarea) button[type="submit"],
+body.pagina-piso :is(#guardar-evento, #dialogo-puntuaciones button) {
+  background: var(--hogar-boton);
+  border: 1px solid #d7afff66;
+  color: #fff5ff;
+  border-radius: 10px;
+}
+body.pagina-piso button:hover:not(:disabled) { filter: brightness(1.1); }
+body.pagina-piso :is(button, a, summary, input, select, textarea):focus-visible {
+  outline: 2px solid #cfacff;
+  outline-offset: 3px;
+}
+body.pagina-piso #panel-piso #menu-piso a:focus-visible { outline-color: #cfacff; }
+body.pagina-piso #panel-piso :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
+body.pagina-piso #crear-tarea :is(input, select),
+body.pagina-piso #panel-loteria-tareas input[type="date"] {
+  background: #2a203b;
+  border-color: #b398cd50;
+  color: #f5edff;
+  border-radius: 10px;
+  color-scheme: dark;
+}
+body.pagina-piso :is(input, textarea)::placeholder { color: #aa99be; opacity: 1; }
+body.pagina-piso select option { background: #2a203b; color: #f5edff; }
+body.pagina-piso :is(#panel-piso, dialog, #completar-tarea) input[type="checkbox"] { accent-color: #b58ae3; }
+body.pagina-piso fieldset { border-color: var(--hogar-linea); border-radius: 12px; }
+
+/* Menús flotantes y ventanas de todas las secciones. */
+body.pagina-piso #panel-piso :is(.menu-gasto, .menu-norma, .menu-aviso, .menu-tarea-hecha,
+  .menu-lista-compra) > div,
+body.pagina-piso .acciones-tarea details > div {
+  background: #2b1e3b;
+  color: #f4e9ff;
+  border: 1px solid #bb94dc50;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px #08041080;
+}
+body.pagina-piso #panel-piso :is(.menu-gasto, .menu-norma, .menu-aviso, .menu-tarea-hecha,
+  .menu-lista-compra) button { background: transparent; color: #e7cffa; border-color: transparent; }
+body.pagina-piso #panel-piso :is(.menu-gasto, .menu-norma, .menu-aviso, .menu-tarea-hecha,
+  .menu-lista-compra) button:hover { background: #c896f51c; }
+body.pagina-piso :is(dialog, #completar-tarea),
+body.pagina-piso #completar-tarea {
+  color: var(--hogar-texto);
+  background: radial-gradient(ellipse at 0% 100%, #77226435, transparent 65%),
+    linear-gradient(140deg, #30233f, #1c182e);
+  border: 1px solid #c6a4e65c;
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 #ffffff0d, 0 28px 90px #08041099;
+  color-scheme: dark;
+}
+body.pagina-piso :is(dialog, #completar-tarea)::backdrop { background: #090511b8; backdrop-filter: blur(5px); }
+body.pagina-piso :is(dialog, #completar-tarea) button:not([type="submit"]) {
+  color: #f2e8fc;
+  background: #45344f;
+  border: 1px solid #c6a4e64d;
+  border-radius: 10px;
+}
+body.pagina-piso :is(dialog, #completar-tarea) :is(input, select, textarea) { background-color: #241b33; border-color: #a88bbe66; color: #fff2ff; }
+body.pagina-piso :is(dialog, #completar-tarea) :is(p, li) { color: #d3c4e1; }
+body.pagina-piso #completar-tarea #foto-tarea { background: #21182b; border-color: #a88bbe66; }
+body.pagina-piso #completar-tarea #foto-tarea::file-selector-button { background: #493455; border-color: #b793ce66; color: #f2e8fc; }
+body.pagina-piso #completar-tarea button[type="submit"] { background: var(--hogar-boton); border-color: #d7afff66; }
+body.pagina-piso #panel-piso :is(#nuevo-gasto, #anadir-norma, .anadir-producto-linea) { color: #d7afea; }
+body.pagina-piso #panel-piso :is(#nuevo-gasto, #anadir-norma, .anadir-producto-linea) span { color: #edb5ec; }
+body.pagina-piso #panel-piso :is(#nuevo-gasto, #anadir-norma, .anadir-producto-linea):hover { color: #f3d4ff; background: transparent; }
+body.pagina-piso #panel-piso :is(#nuevo-gasto, #anadir-norma, .anadir-producto-linea):hover span { background: #9a4f9f; color: #fff; }
+
+/* Calendario, chat y estados conservan colores reconocibles. */
+body.pagina-piso :is(.dias-calendario, .dia-calendario) { border-color: var(--hogar-linea); }
+body.pagina-piso .dias-calendario { background: #25183138; }
+body.pagina-piso .dia-calendario:hover { background: #a77ee914; }
+body.pagina-piso .dia-calendario.otro-mes { background: #100b1a55; }
+body.pagina-piso .numero-dia { color: #e9dff4; }
+body.pagina-piso .es-hoy .numero-dia { background: #874ba8; color: white; }
+body.pagina-piso .evento-calendario { background: #72489045; color: #edd6ff; border-left: 2px solid #c08ee6; }
+body.pagina-piso .semana-calendario { color: #c3acd8; }
+body.pagina-piso .mensaje-aviso > div { padding: 14px 18px; border: 1px solid var(--hogar-linea); background: #30203e55; border-radius: 0 16px 16px; }
+body.pagina-piso .aviso-propio > div { background: linear-gradient(120deg, #69356235, #2b3e653d); border-color: #c594e02e; }
+body.pagina-piso .mensaje-aviso p { color: #f0e4fa; }
+body.pagina-piso .cabecera-aviso :is(time, small) { color: #bdabcd; }
+body.pagina-piso #tareas .lista-tareas > li { border-color: var(--hogar-linea); }
+body.pagina-piso #tareas .titulo-hechas-tareas { color: #a5d9c1; border-color: #9bcdbd35; }
+body.pagina-piso #tareas .cuadro-completar-tarea { border-color: #c4a5dc; }
+body.pagina-piso :is(.detalle-foto-tarea > summary, .menu-tarea-hecha > summary) { color: #cfa7e6; }
+body.pagina-piso :is(.puesto-propio .nombre-podio, .ranking-propio) { color: #e5b5ff; }
+body.pagina-piso .escalon-podio { background-color: #a77de508; }
+body.pagina-piso #lista-normas > li > p { color: #cbbbd9; }
+body.pagina-piso :is(#error-gasto, #error-devolucion, #error-norma) { color: #ffb7cb; }
+body.pagina-piso :is(#abandonar-piso, #aceptar-abandono, #eliminar-evento) {
+  background: #82354f;
+  border-color: #e6a1b84d;
+  color: #ffe4ec;
+}
+body.pagina-piso #reparto-por-persona h3 { color: #e2b7ff; }
+body.pagina-piso #reparto-por-persona section { border-color: var(--hogar-linea); }
+body.pagina-piso #cuenta {
+  box-sizing: border-box;
+  padding: 28px;
+  border: 1px solid var(--hogar-linea);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #64345625, #253c5b20);
+}
+
+/* Perfil personal y gestión del hogar. */
+body.pagina-piso #cuenta { max-width: 1000px; padding: 32px; }
+.cabecera-perfil { margin-bottom: 28px; }
+.ceja-perfil { color: #c9a4de; font-size: 11px; font-weight: 600; letter-spacing: .14em; margin: 0 0 10px; }
+body.pagina-piso #cuenta h2 { margin: 0 0 10px; font-size: 30px; letter-spacing: -.035em; }
+.descripcion-perfil { color: var(--hogar-secundario); margin: 0; line-height: 1.6; }
+.tarjeta-identidad-perfil { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px; background: #c29de008; border: 1px solid var(--hogar-linea); border-radius: 16px; }
+.tarjeta-identidad-perfil { flex-wrap: wrap; }
+body.pagina-piso #cuenta .identidad-piso { flex: 1; min-width: 180px; }
+body.pagina-piso #editar-mi-perfil { margin: 0; padding: 10px 14px; border: 1px solid #c49ce35c; border-radius: 10px; background: #b680dc12; color: #e8cefa; font-size: 13px; }
+body.pagina-piso .avatar-miembro img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.datos-personales { margin-top: 24px; padding: 22px 24px; border: 1px solid var(--hogar-linea); border-radius: 16px; background: #af83dc05; }
+.datos-personales h3 { font-size: 15px; margin: 0 0 18px; }
+.datos-personales dl { display: flex; flex-wrap: wrap; gap: 22px 50px; margin: 0; }
+.datos-personales dt { font-size: 12px; color: #b5a3c6; margin-bottom: 7px; }
+.datos-personales dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.datos-personales > p { color: #b5a3c6; font-size: 12px; line-height: 1.5; margin: 16px 0 0; }
+.datos-personales #estado-mi-cuenta:empty { display: none; }
+body.pagina-piso #dialogo-mi-perfil { box-sizing: border-box; width: min(620px, 92vw); max-height: 90dvh; overflow: auto; padding: 30px; }
+#dialogo-mi-perfil h2 { margin: 0 0 12px; font-size: 25px; }
+#dialogo-mi-perfil form > label { display: block; margin: 22px 0 9px; font-size: 14px; }
+body.pagina-piso #dialogo-mi-perfil form > input { width: 100%; box-sizing: border-box; padding: 12px; margin: 0; }
+#dialogo-mi-perfil form > p:not(.ceja-perfil) { font-size: 13px; line-height: 1.6; }
+#dialogo-mi-perfil form > small { display: block; font-size: 11px; color: #bba8ca; margin-top: 8px; }
+#dialogo-mi-perfil input[readonly] { color: #c9b8db; }
+.foto-personal-editor { border-radius: 50%; }
+body.pagina-piso #dialogo-mi-perfil #archivo-foto-personal { width: 100%; margin: 0; padding: 0; border: 0; background: transparent; font-size: 12px; border-radius: 0; }
+#archivo-foto-personal::file-selector-button { background: #493459; border: 1px solid #bb95d45c; border-radius: 7px; padding: 8px 10px; color: #f2e5ff; margin-right: 8px; cursor: pointer; }
+body.pagina-piso #dialogo-mi-perfil #quitar-foto-personal { background: transparent; border: 0; margin: 9px 0 0; padding: 0; color: #eab5ce; font-size: 12px; }
+body.pagina-piso #dialogo-mi-perfil .acciones-gasto { align-items: center; }
+body.pagina-piso #dialogo-mi-perfil .acciones-gasto button { margin: 0; line-height: 1.3; }
+body.pagina-piso #dialogo-mi-perfil .foto-personal-editor { border-radius: 50%; }
+.correo-perfil-fijo { margin-top: 22px; }
+.correo-perfil-fijo > span { color: #bba8ca; font-size: 13px; }
+.correo-perfil-fijo > p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+body.pagina-piso .avatar-aviso { overflow: hidden; }
+body.pagina-piso .avatar-aviso img { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+body.pagina-piso #podio-ranking[data-empate-primero="true"] .puesto-podio { order: 0; }
+body.pagina-piso #tareas .detalle-foto-tarea form button {
+  padding: 12px 18px;
+  border: 1px solid #d7afff66;
+  border-radius: 10px;
+  background: var(--hogar-boton);
+  color: #fff5ff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  box-shadow: inset 0 1px 0 #ffffff08;
+}
+body.pagina-piso #cuenta .identidad-piso { gap: 18px; margin: 0; }
+body.pagina-piso #cuenta #avatar-perfil-piso { flex: 0 0 64px; width: 64px; height: 64px; font-size: 26px; }
+body.pagina-piso #cuenta #nombre-perfil-piso { font-size: 20px; font-weight: 600; }
+.insignia-rol { display: table; padding: 5px 10px; margin: 9px 0 0; border: 1px solid #c39bdd35; border-radius: 20px; background: #b77ae812; color: #d6b9ed; font-size: 12px; }
+body.pagina-piso #cuenta .puntuacion-piso { margin: 0; padding: 0 0 0 24px; border: 0; border-left: 1px solid var(--hogar-linea); min-width: 120px; }
+.puntuacion-piso > span { color: var(--hogar-secundario); font-size: 12px; }
+body.pagina-piso #cuenta #puntos-piso { font-size: 24px; font-weight: 600; margin: 6px 0; }
+body.pagina-piso #cuenta .puntuacion-piso a { font-size: 12px; color: #d5b5ed; text-decoration: none; }
+.tarjeta-hogar-perfil { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; align-items: center; gap: 20px; margin-top: 24px; padding: 24px; border: 1px solid var(--hogar-linea); border-radius: 16px; background: linear-gradient(120deg, #6b365423, #2f527223); }
+.foto-hogar-perfil { width: 88px; height: 88px; overflow: hidden; border-radius: 18px; border: 1px solid #c7a0eb33; background: linear-gradient(135deg, #72426c, #273f62); display: grid; place-items: center; flex-shrink: 0; }
+.foto-hogar-perfil img { width: 100%; height: 100%; object-fit: cover; }
+.foto-hogar-perfil > span { font-size: 36px; color: #ead5fb; }
+.datos-hogar-perfil { min-width: 0; }
+.datos-hogar-perfil h3 { margin: 0 0 8px; font-size: 21px; overflow-wrap: anywhere; }
+.datos-hogar-perfil > p:not(.ceja-perfil) { margin: 6px 0 0; font-size: 13px; color: var(--hogar-secundario); }
+.datos-hogar-perfil .ceja-perfil { margin-bottom: 8px; }
+body.pagina-piso #editar-perfil-hogar { margin: 0; padding: 11px 16px; border: 1px solid #d7afff66; border-radius: 10px; background: var(--hogar-boton); color: #fff5ff; font-size: 14px; }
+.ayuda-perfil { grid-column: 2 / -1; margin: -7px 0 0; color: #ab9cbd; font-size: 12px; line-height: 1.5; }
+.enlaces-perfil { margin: 22px 0 28px; }
+.enlaces-perfil a { font-size: 14px; text-decoration: none; }
+.enlaces-perfil a:hover { text-decoration: underline; }
+.pie-perfil { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding-top: 24px; border-top: 1px solid var(--hogar-linea); }
+.pie-perfil strong { font-size: 14px; font-weight: 600; }
+.pie-perfil p { margin: 7px 0 0; color: #aa9cba; font-size: 12px; line-height: 1.5; max-width: 310px; }
+.acciones-perfil { display: flex; flex-wrap: wrap; gap: 10px; }
+body.pagina-piso #cuenta .acciones-perfil button { width: auto; margin: 0; padding: 11px 15px; border-radius: 10px; font-size: 13px; font-weight: 500; }
+body.pagina-piso #cuenta #abandonar-piso { background: transparent; border: 1px solid #bf79954d; color: #eeafca; }
+body.pagina-piso #cuenta #abandonar-piso:hover { background: #ab4c7417; }
+body.pagina-piso #cuenta #error-cuenta-piso { font-size: 13px; color: #d1bce5; }
+body.pagina-piso #dialogo-perfil-hogar { width: min(620px, 92vw); max-height: 90dvh; overflow: auto; box-sizing: border-box; padding: 30px; }
+#dialogo-perfil-hogar h2 { margin: 0 0 12px; font-size: 26px; letter-spacing: -.03em; }
+#dialogo-perfil-hogar form > p:not(.ceja-perfil) { font-size: 14px; line-height: 1.6; }
+#dialogo-perfil-hogar form > label { display: block; margin: 24px 0 10px; font-size: 14px; }
+body.pagina-piso #dialogo-perfil-hogar #nombre-editar-hogar { width: 100%; margin: 0; padding: 13px; box-sizing: border-box; }
+.editor-foto-hogar { display: flex; align-items: center; gap: 20px; margin-top: 24px; padding: 18px; border: 1px solid var(--hogar-linea); border-radius: 14px; }
+.editor-foto-hogar > div:last-child { min-width: 0; }
+.editor-foto-hogar label { display: block; font-size: 14px; margin-bottom: 10px; }
+.editor-foto-hogar small { display: block; color: #b6a2ca; font-size: 11px; margin-top: 8px; }
+body.pagina-piso #dialogo-perfil-hogar #archivo-foto-hogar { width: 100%; margin: 0; padding: 0; border: 0; background: transparent; font-size: 12px; border-radius: 0; }
+#archivo-foto-hogar::file-selector-button { background: #493459; border: 1px solid #bb95d45c; border-radius: 7px; padding: 8px 10px; color: #f2e5ff; margin-right: 8px; cursor: pointer; }
+body.pagina-piso #dialogo-perfil-hogar #quitar-foto-hogar { background: transparent; border: 0; margin: 9px 0 0; padding: 0; color: #eab5ce; font-size: 12px; }
+#estado-editar-hogar { min-height: 20px; }
+body.pagina-piso #dialogo-perfil-hogar .acciones-gasto { align-items: center; }
+body.pagina-piso #dialogo-perfil-hogar .acciones-gasto button { margin: 0; line-height: 1.3; }
+@media (max-width: 1100px) {
+  .tarjeta-hogar-perfil { grid-template-columns: 72px minmax(0, 1fr); }
+  .tarjeta-hogar-perfil .foto-hogar-perfil { width: 72px; height: 72px; }
+  #editar-perfil-hogar { grid-column: 2; justify-self: start; }
+}

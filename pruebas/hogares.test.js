@@ -15,6 +15,22 @@ function preparar() {
   };
 }
 
+test('los avisos muestran la foto actual de cada autor y permiten volver a la inicial', async () => {
+  let foto = 'data:image/png;base64,foto-de-prueba';
+  const repositorio = crearRepositorioHogaresMemoria({ buscarPorEmail: async email => ({ nombre: email, estado: 'activo', foto: email === 'marta@example.com' ? foto : null }) });
+  const servicio = crearServicioHogares(repositorio);
+  const hogar = await servicio.crear('marta@example.com', 'Casa', randomUUID());
+  await servicio.unir('alex@example.com', hogar.invitacion.codigo);
+  await servicio.guardarAviso(hogar.id, 'marta@example.com', randomUUID(), 'Hola');
+  await servicio.guardarAviso(hogar.id, 'alex@example.com', randomUUID(), 'Buenas');
+  let avisos = (await servicio.avisos(hogar.id, 'alex@example.com')).avisos;
+  assert.equal(avisos.find(a => a.nombre === 'marta@example.com').foto, foto);
+  assert.equal(avisos.find(a => a.nombre === 'alex@example.com').foto, null);
+  foto = null;
+  avisos = (await servicio.avisos(hogar.id, 'alex@example.com')).avisos;
+  assert.equal(avisos.find(a => a.nombre === 'marta@example.com').foto, null);
+});
+
 test('crear, listar y consultar un piso mantiene al creador como administrador y aísla cuentas', async () => {
   const { servicio } = preparar();
   const hogar = await servicio.crear('marta@example.com', '  Piso plaza  ', randomUUID());
@@ -27,6 +43,36 @@ test('crear, listar y consultar un piso mantiene al creador como administrador y
   const consultado = await servicio.consultar(hogar.id, 'marta@example.com');
   assert.equal(consultado.miembros.length, 1);
   assert.equal(consultado.invitacion, undefined);
+});
+
+test('solo el administrador edita la identidad del piso y los cambios son compartidos', async () => {
+  const { servicio } = preparar();
+  const hogar = await servicio.crear('marta@example.com', 'Casa', randomUUID(), { moneda: 'GBP' });
+  await servicio.unir('alex@example.com', hogar.invitacion.codigo);
+  await assert.rejects(servicio.editarPerfil(hogar.id, 'alex@example.com', { nombre: 'Otra casa' }), { status: 403 });
+  await assert.rejects(servicio.editarPerfil(hogar.id, 'ajeno@example.com', { nombre: 'Otra casa' }), { status: 404 });
+  const foto = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jO1kAAAAASUVORK5CYII=';
+  const actualizado = await servicio.editarPerfil(hogar.id, 'marta@example.com', { nombre: '  Nuestro hogar  ', foto, moneda: 'USD' });
+  assert.equal(actualizado.nombre, 'Nuestro hogar');
+  assert.equal(actualizado.foto, foto);
+  assert.equal(actualizado.moneda, 'GBP');
+  assert.equal(actualizado.miembros.length, 2);
+  assert.equal((await servicio.listar('alex@example.com'))[0].nombre, 'Nuestro hogar');
+  await servicio.editarPerfil(hogar.id, 'marta@example.com', { nombre: 'Casa nueva' });
+  assert.equal((await servicio.consultar(hogar.id, 'alex@example.com')).foto, foto);
+  await servicio.editarPerfil(hogar.id, 'marta@example.com', { nombre: 'Casa nueva', foto: null });
+  assert.equal((await servicio.consultar(hogar.id, 'alex@example.com')).foto, null);
+});
+
+test('editar el piso rechaza datos inválidos sin modificar el nombre ni la foto', async () => {
+  const { servicio } = preparar();
+  const hogar = await servicio.crear('marta@example.com', 'Casa', randomUUID());
+  for (const datos of [null, {}, { nombre: ' ' }, { nombre: 'a'.repeat(31) },
+    { nombre: 'Cambio', foto: 'https://example.com/foto.png' },
+    { nombre: 'Cambio', foto: 'data:image/png;base64,aG9sYQ==' }]) {
+    await assert.rejects(servicio.editarPerfil(hogar.id, 'marta@example.com', datos), { status: 400 });
+  }
+  assert.equal((await servicio.consultar(hogar.id, 'marta@example.com')).nombre, 'Casa');
 });
 
 test('rechaza nombres repetidos del mismo creador conservando reintentos y nombres de otros usuarios', async () => {

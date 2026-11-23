@@ -13,6 +13,17 @@
     <header class="marca-acceso">
       <h1>Hogar<span>Du</span></h1>
       <p>Un espacio para organizar el día a día de vuestro hogar.</p>
+      <div class="carga-decorativa" aria-hidden="true">
+        <span class="carga-decorativa-texto">Preparando mudanza...</span>
+        <div class="carga-decorativa-marco">
+          <div class="carga-decorativa-bloques">
+            <i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+      </div>
     </header>
     <img class="logo-hogardo" src="./imagenes/logo-hogardo.png?v=2" alt="HogarDu" width="1536" height="1024">
     <aside class="presentacion" aria-labelledby="titulo-presentacion">
@@ -123,7 +134,7 @@
           <label for="selector-hogar">Entrar en Mis Pisos</label>
           <select id="selector-hogar"></select>
         </div>
-        <details class="ajustes-cuenta" id="opciones-cuenta">
+        <details class="ajustes-cuenta" id="opciones-cuenta" hidden>
           <summary>Opciones de mi cuenta</summary>
         <p id="vinculo-google" hidden>
           <a class="boton-google" href="/api/auth/google?vincular=1">Vincular Google a mi cuenta</a>

@@ -105,6 +105,12 @@ test(
       assert.equal(usuario.estado, 'activo');
 
       // Otro repositorio recupera los datos guardados en la tabla.
+      const fotoPerfil = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jO1kAAAAASUVORK5CYII=';
+      await servicio.editarPerfil(usuario.email, { nombre: 'Nombre nuevo', foto: fotoPerfil });
+      const perfilPersistido = await crearServicioUsuarios(crearRepositorioUsuariosPostgres(cliente)).consultarPerfil(usuario.email);
+      assert.equal(perfilPersistido.nombre, 'Nombre nuevo');
+      assert.equal(perfilPersistido.foto, fotoPerfil);
+      await servicio.editarPerfil(usuario.email, { nombre: 'Prueba PostgreSQL', foto: null });
       const otroRepositorio = crearRepositorioUsuariosPostgres(cliente);
       const listado = await otroRepositorio.listar();
 
