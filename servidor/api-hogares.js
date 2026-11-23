@@ -64,6 +64,9 @@ export function crearApiHogares(servicio, finanzas, canalAvisos) {
   router.post('/:id/invitacion', async (req, res) => {
     res.json(await servicio.renovar(req.params.id, req.usuario.email));
   });
+  router.post('/:id/perfil', async (req, res) => {
+    res.json(await servicio.editarPerfil(req.params.id, req.usuario.email, req.body));
+  });
   router.post('/:id/abandonar', async (req, res) => {
     await servicio.abandonar(req.params.id, req.usuario.email);
     res.json({ abandonado: true });

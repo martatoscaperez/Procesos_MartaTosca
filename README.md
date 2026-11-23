@@ -447,7 +447,7 @@ Para ejecutar únicamente la prueba de PostgreSQL:
 node --env-file=.env --test pruebas/postgres.test.js
 ```
 
-La suite actual incluye 77 pruebas, contando los casos de hogares, tareas,
+La suite actual incluye 92 pruebas, contando los casos de hogares, tareas,
 finanzas, normas, calendario, compra y avisos del Sprint 2. La base del
 Sprint 1 incluye los siguientes grupos:
 
@@ -486,7 +486,7 @@ Se utiliza GitHub Flow:
 `.github/workflows/ci.yml` ejecuta las pruebas en cada pull request
 y en los cambios de main.
 
-El CI prepara una base PostgreSQL temporal y ejecuta las 77 pruebas.
+El CI prepara una base PostgreSQL temporal y ejecuta las 92 pruebas.
 No necesita las credenciales de Neon.
 
 ## Despliegue
@@ -537,6 +537,14 @@ Se comprobaron acceso, pertenencia al piso, permisos de normas y tareas,
 consulta compartida de gastos, entrega de avisos por SSE, reintentos sin
 duplicados y lectura individual. Las 11 comprobaciones terminaron correctamente.
 También se guardó y recargó una edición de tarea desde el navegador.
+
+El comprobador se ha ampliado para la revisión final del diseño y los perfiles:
+compara los archivos publicados con el proyecto, guarda nombre y foto personales,
+verifica que el correo y los permisos no cambian, comprueba la foto del autor
+en el chat y prueba la edición del nombre y la foto del piso por su administrador.
+Restaura los datos originales de las cuentas y del hogar de validación al terminar.
+Los empates del ranking se verifican en nueve casos automatizados, incluidos
+los puestos consecutivos, los puntos negativos y los grupos de personas empatadas.
 
 El comprobador manual se ejecuta con:
 
@@ -790,56 +798,69 @@ renderizan como texto plano. Se limitan el tamaño de cuerpos y los intentos
 de invitación. Los errores son JSON y los recursos ajenos no revelan datos.
 Los secretos permanecen en el entorno.
 
-### Plan de desarrollo por hitos y PBIs
+### Hitos del Sprint 2: alcance implementado
 
-#### Hito 1 · Entrar a mi hogar
+Esta es la lista vigente para el cierre del Sprint 2, del 4 al 17 de noviembre
+de 2026. Recoge las funciones implementadas y verificadas. El modelo y la API
+propuestos en los apartados anteriores documentan el diseño inicial y no
+amplían este alcance de entrega.
+
+#### Hito 1 · Hogares y navegación
 
 1. Crear, seleccionar y unirse a un hogar.
-   Migración de hogares, membresías e invitaciones; permisos; pantallas;
-   prueba con dos miembros y una cuenta ajena.
-2. Navegar por HogarDu y configurar el perfil.
-   Diseño adaptable; avatar de iniciales y color; navegación y resumen.
+   Nombre, moneda y foto opcional; invitación mediante código o enlace;
+   membresías y permisos por piso; renovación de la invitación por su administrador.
+   El administrador también puede cambiar el nombre y la foto del piso.
+2. Navegar por las secciones del piso.
+   Inicio con resumen personal, compañeros y próximos eventos; barra lateral
+   común y foto personal o iniciales. La navegación se organiza por secciones.
+   Ajustes personales para editar nombre y foto; correo de acceso no editable.
 
-#### Hito 2 · Organizar la convivencia
+#### Hito 2 · Tareas, compra y normas
 
 3. Gestionar tareas y turnos.
-   Tareas manuales; recurrencias; rotación; historial; puntos y pruebas
-   de concurrencia entre completar y vencer.
+   Alta y edición de pendientes; responsables; recurrencia semanal o mensual
+   y rotación; filtros de tareas propias o de todo el piso. Lotería aleatoria
+   con una diferencia máxima de una tarea por persona en cada sorteo y fecha
+   común opcional. Finalización de tareas propias con foto opcional, comentarios
+   solo sobre tareas con foto y consulta de pendientes y hechas. Puntuación
+   calculada según fechas y estado; ranking mensual con podio y explicación
+   de las reglas. Ocultar una tarea hecha conserva sus puntos.
 4. Compartir la compra.
-   Alta, edición, marcado, versionado y comprobación con dos sesiones.
-5. Publicar normas y registrar aceptaciones.
-   Versiones, permisos, publicación y aceptación de la versión vigente.
+   Listas con nombre; cambio de nombre y borrado; productos con cantidad
+   opcional; marcado, desmarcado y eliminación; persistencia compartida por piso.
+5. Gestionar las normas del piso.
+   Consulta para todos los miembros. Alta, edición y borrado reservados al
+   administrador del hogar, con título obligatorio y descripción opcional.
 
 #### Hito 3 · Gastos y coordinación
 
-6. Registrar gastos y consultar balances.
-   Céntimos, reparto, liquidaciones, propuesta de transferencias y pruebas
-   de que cuotas y saldos cuadran.
-7. Convertir compras en gastos.
-   Confirmación del reparto y conversión atómica resistente a reintentos.
-8. Consultar calendario y publicar avisos.
-   Eventos, vista mensual, tablón y actualización compartida.
+6. Registrar gastos y consultar cuentas pendientes.
+   Concepto, fecha, pagador y reparto igual o personalizado; importes en
+   céntimos; edición y eliminación de gastos; compensación de deudas;
+   consulta de todas las cuentas o de las deudas propias; registro de
+   devoluciones parciales o completas, sin transferencias bancarias.
+7. Coordinar el calendario del piso.
+   Vista mensual, navegación por meses y próximos eventos; fecha, hora
+   opcional y descripción; edición y borrado de eventos por su autor.
+8. Compartir avisos con actualización inmediata.
+   Chat con autor y fecha; edición y borrado de mensajes propios; señales
+   de cambio mediante SSE; punto de avisos ajenos sin leer y lectura
+   independiente por usuario y hogar, con reconexión del cliente.
 
 #### Hito 4 · Verificación y entrega
 
 9. Probar y publicar el incremento.
-   Migraciones aisladas; permisos entre hogares; cuentas antiguas;
-   pruebas de fechas y dinero; navegación en navegador de escritorio; CI; migración de producción;
-   despliegue en Cloud Run; pruebas de humo y evidencia para la memoria.
+   Persistencia en PostgreSQL; pruebas de permisos, fechas, dinero y reintentos;
+   92 pruebas automatizadas superadas; revisión de escritorio y edición
+   conservada tras recargar. Integración en main, CI y despliegue en Cloud Run;
+   11 comprobaciones sobre la aplicación publicada con dos sesiones
+   independientes, incluidos SSE y los avisos sin leer.
 
-Se implementa cada funcionalidad de extremo a extremo. Cada PBI tiene
-rama, migración cuando procede, interfaz, API y validación antes de su PR.
-El primer incremento demostrable es crear un hogar, invitar a una segunda
-cuenta y ver el mismo listado de miembros desde ambas.
-
-### Plazo
-
-El alcance completo incluye recurrencias, dinero, aceptación versionada
-y concurrencia. No se da por asegurada una entrega completa en tres días.
-Si sigue vigente ese plazo, la primera versión se centra en hogares,
-tareas manuales, compra, normas y gastos equitativos. La rotación,
-repartos personalizados, calendario y conversión a gasto se planifican
-según el avance comprobado.
+El cierre documenta la aplicación web de escritorio. El plano interactivo,
+la aceptación versionada de normas, la conversión automática de compra en
+gasto, el cierre mensual guardado del ranking y un control general de
+versiones para ediciones simultáneas quedan fuera de este alcance.
 
 Las tareas pendientes se pueden editar desde «Editar» en su menú: el diálogo permite cambiar nombre, fecha límite, frecuencia y responsable. Una repetición necesita fecha de inicio. La edición conserva las tareas completadas; si cambia el responsable, las próximas repeticiones se asignan a ese compañero.
 

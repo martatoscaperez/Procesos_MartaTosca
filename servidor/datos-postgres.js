@@ -14,6 +14,7 @@ function convertirUsuario(fila) {
     estado: fila.estado
   };
   if (fila.google_sub) usuario.googleSub = fila.google_sub;
+  if (fila.foto_perfil) usuario.foto = fila.foto_perfil;
 
   if (fila.confirmacion_hash !== null) {
     usuario.confirmacionHash = fila.confirmacion_hash;
@@ -43,6 +44,15 @@ function obtenerValores(usuario) {
 // Recibe la conexión para mantener separado el almacenamiento.
 export function crearRepositorioUsuariosPostgres(conexion) {
   return {
+    async actualizarPerfil(email, cambios) {
+      const resultado = await conexion.query(
+        `UPDATE usuarios SET nombre=$2,
+         foto_perfil=CASE WHEN $3::boolean THEN $4::text ELSE foto_perfil END
+         WHERE email=$1 AND estado='activo' RETURNING *`,
+        [email, cambios.nombre, Object.hasOwn(cambios, 'foto'), cambios.foto ?? null]
+      );
+      return convertirUsuario(resultado.rows[0]);
+    },
     // Busca una cuenta y devuelve null si no existe.
     async buscarPorEmail(email) {
       const resultado = await conexion.query(

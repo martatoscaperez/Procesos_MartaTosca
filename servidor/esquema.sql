@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS usuarios (
   email TEXT PRIMARY KEY,
   nombre TEXT NOT NULL,
+  foto_perfil TEXT,
   clave_hash TEXT,
   google_sub TEXT UNIQUE,
   rol TEXT NOT NULL DEFAULT 'usuario'

@@ -99,8 +99,9 @@ function mostrarSesion(usuario) {
   if (!conectado) {
     cambiarFormulario(true);
   }
-  if (conectado && location.hash === '#opciones-cuenta') {
-    const opciones = document.getElementById('opciones-cuenta');
+  const opciones = document.getElementById('opciones-cuenta');
+  opciones.hidden = !conectado || location.hash !== '#opciones-cuenta';
+  if (!opciones.hidden) {
     opciones.open = true;
     opciones.scrollIntoView({ block: 'nearest' });
     opciones.querySelector('summary').focus({ preventScroll: true });

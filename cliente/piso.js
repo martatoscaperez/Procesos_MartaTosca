@@ -1,4 +1,7 @@
 import { prepararAvisos } from './avisos.js';
+import { prepararPerfil } from './perfil.js';
+import { prepararCuenta } from './cuenta.js';
+import { clasificarRanking } from './ranking.js';
 import { prepararNormas } from './normas.js';
 import { prepararGastos } from './gastos.js';
 import { prepararLoteria } from './loteria.js';
@@ -351,19 +354,14 @@ async function cargarTareas() {
     }));
     const primeros = ranking.filter(miembro => miembro.puntos === ranking[0]?.puntos);
     porId('lider-inicio').textContent = primeros.length
-      ? `${primeros.map(miembro => miembro.nombre).join(', ')} · ${primeros[0].puntos} puntos${primeros.length > 1 ? ' · Empate en cabeza' : ' · En cabeza'}`
+      ? `${primeros.map(miembro => miembro.nombre).join(', ')} · ${primeros[0].puntos}${primeros[0].puntos === 1 ? ' punto' : ' puntos'}${primeros.length > 1 ? ' · Empate en cabeza' : ' · En cabeza'}`
       : 'Aún no hay compañeros en el ranking.';
     porId('mes-ranking').textContent = new Date(`${mes}-01T12:00:00`)
       .toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-    let posicion = 0;
-    let anterior;
-    const clasificacion = ranking.map((miembro, indice) => {
-      if (miembro.puntos !== anterior) posicion = indice + 1;
-      anterior = miembro.puntos;
-      return { ...miembro, posicion };
-    });
+    const clasificacion = clasificarRanking(ranking);
     const podio = porId('podio-ranking');
     podio.dataset.personas = String(Math.min(clasificacion.length, 3));
+    podio.dataset.empatePrimero = String(clasificacion.filter(miembro => miembro.posicion === 1).length > 1);
     podio.replaceChildren(...clasificacion.slice(0, 3).map((miembro, indice) => {
       const fila = document.createElement('li');
       fila.className = 'puesto-podio' + (miembro.propia ? ' puesto-propio' : '');
@@ -391,6 +389,7 @@ async function cargarTareas() {
       const puntos = document.createElement('span');
       puntos.className = 'puntos-podio';
       puntos.textContent = miembro.puntos + (miembro.puntos === 1 ? ' punto' : ' puntos');
+      if (miembro.empatado) puntos.textContent += ' · Empate';
       const escalon = document.createElement('div');
       escalon.className = 'escalon-podio';
       const medalla = document.createElement('span');
@@ -406,7 +405,7 @@ async function cargarTareas() {
     porId('lista-ranking').replaceChildren(...clasificacion.slice(3).map(miembro => {
       const fila = document.createElement('li');
       if (miembro.propia) fila.className = 'ranking-propio';
-      fila.textContent = miembro.posicion + 'º · ' + miembro.nombre + (miembro.propia ? ' (tú)' : '') + ' · ' + miembro.puntos + ' puntos';
+      fila.textContent = miembro.posicion + 'º · ' + miembro.nombre + (miembro.propia ? ' (tú)' : '') + ' · ' + miembro.puntos + (miembro.puntos === 1 ? ' punto' : ' puntos') + (miembro.empatado ? ' · Empate' : '');
       return fila;
     }));
     porId('estado-ranking').textContent = ranking.length ? '' : 'Todavía no hay compañeros en el ranking.';
@@ -510,12 +509,19 @@ try {
   fotoMenu.hidden = !hogar.foto;
   if (hogar.foto) fotoMenu.src = hogar.foto;
   else fotoMenu.removeAttribute('src');
+  prepararPerfil(hogar);
+  prepararCuenta(usuario);
   for (const miembro of hogar.miembros) {
     const fila = document.createElement('li');
     const avatar = document.createElement('span');
     avatar.className = 'avatar-miembro';
     avatar.setAttribute('aria-hidden', 'true');
     avatar.textContent = [...miembro.nombre.trim()][0]?.toUpperCase() ?? '?';
+    if (miembro.foto) {
+      const imagen = document.createElement('img'); imagen.alt = ''; imagen.src = miembro.foto;
+      avatar.replaceChildren(imagen);
+    }
+    if (miembro.propia) { fila.dataset.propio = 'true'; fila.dataset.rol = miembro.rol; }
     fila.append(avatar, `${miembro.nombre} · ${miembro.rol === 'administrador' ? 'Administrador' : 'Miembro'}`);
     porId('miembros-hogar').append(fila);
   }

@@ -1,3 +1,4 @@
+import { validarFoto as validarImagen } from './imagenes.js';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -11,27 +12,16 @@ function fechaValida(fecha) {
   return !Number.isNaN(instante.valueOf()) && instante.toISOString().slice(0, 10) === fecha;
 }
 
-function validarFoto(foto) {
-  if (foto === null) return;
-  const formato = typeof foto === 'string' && foto.length <= 800_030
-    && /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(foto);
-  if (formato) {
-    const imagen = Buffer.from(formato[2], 'base64');
-    const firmas = {
-      jpeg: imagen.subarray(0, 3).toString('hex') === 'ffd8ff',
-      png: imagen.subarray(0, 8).toString('hex') === '89504e470d0a1a0a',
-      webp: imagen.toString('ascii', 0, 4) === 'RIFF' && imagen.toString('ascii', 8, 12) === 'WEBP'
-    };
-    if (imagen.length <= 600_000 && firmas[formato[1]]) return;
-  }
-  throw new ErrorHogar('La foto debe ser JPG, PNG o WebP de hasta 600 KB.', 400);
-}
 
 export class ErrorHogar extends Error {
   constructor(mensaje, status) {
     super(mensaje);
     this.status = status;
   }
+}
+function validarFoto(foto) {
+  try { validarImagen(foto); }
+  catch (error) { throw new ErrorHogar(error.message, 400); }
 }
 
 function validarId(id) {
@@ -236,6 +226,24 @@ export function crearServicioHogares(repositorio, reloj = () => new Date()) {
       const hogar = await repositorio.consultar(id, email);
       if (!hogar) throw new ErrorHogar('El piso no existe o no formas parte de él.', 404);
       return hogar;
+    },
+    async editarPerfil(id, email, datos) {
+      const hogar = await this.consultar(id, email);
+      if (hogar.rol !== 'administrador') {
+        throw new ErrorHogar('Solo el administrador del piso puede cambiar su nombre y su foto.', 403);
+      }
+      if (typeof datos?.nombre !== 'string' || !datos.nombre.trim() || datos.nombre.trim().length > 30) {
+        throw new ErrorHogar('Escribe un nombre para el piso de hasta 30 caracteres.', 400);
+      }
+      const cambios = { nombre: datos.nombre.trim() };
+      if (Object.hasOwn(datos, 'foto')) {
+        validarFoto(datos.foto);
+        cambios.foto = datos.foto;
+      }
+      if (!await repositorio.editarPerfil(id, email, cambios)) {
+        throw new ErrorHogar('No se pudo guardar. Comprueba que sigues siendo administrador del piso.', 403);
+      }
+      return this.consultar(id, email);
     },
     async unir(email, codigo) {
       if (typeof codigo !== 'string' || !/^[A-F0-9]{20}$/.test(codigo.trim().toUpperCase())) {

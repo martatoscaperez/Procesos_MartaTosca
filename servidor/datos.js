@@ -4,6 +4,13 @@ export function crearRepositorioUsuarios() {
   const usuarios = new Map();
 
   return {
+    actualizarPerfil(email, cambios) {
+      const usuario = usuarios.get(email);
+      if (!usuario || usuario.estado !== 'activo') return null;
+      usuario.nombre = cambios.nombre;
+      if (Object.hasOwn(cambios, 'foto')) usuario.foto = cambios.foto;
+      return { ...usuario };
+    },
     // Busca un usuario por su email.
     buscarPorEmail(email) {
       const usuario = usuarios.get(email);

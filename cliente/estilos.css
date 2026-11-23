@@ -872,6 +872,48 @@ form button[type="submit"] {
   -webkit-text-fill-color: transparent;
 }
 .marca-acceso p { margin: 8px 0 0; color: #f2dce9; }
+.carga-decorativa {
+  display: none;
+  width: min(100%, 280px);
+  margin: 32px auto 0;
+  color: #baa4ff;
+}
+.carga-decorativa-texto {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: .02em;
+}
+.carga-decorativa-marco {
+  padding: 4px;
+  border: 2px solid #a58bd7;
+  border-radius: 6px;
+  background: #09050eb3;
+  box-shadow: 0 0 16px #ae81ff20;
+}
+.carga-decorativa-bloques {
+  display: grid;
+  grid-template-columns: repeat(20, minmax(0, 1fr));
+  gap: 2px;
+  animation: llenar-barra-acceso 5s infinite;
+  clip-path: inset(0 100% 0 0);
+}
+.carga-decorativa-bloques i {
+  display: block;
+  height: 16px;
+  border-radius: 3px;
+  background: #b69af7;
+  box-shadow: inset 0 1px 0 #ffffff45;
+}
+@keyframes llenar-barra-acceso {
+  0%, 10% { clip-path: inset(0 100% 0 0); animation-timing-function: steps(20, end); }
+  85%, 99% { clip-path: inset(0 0 0 0); animation-timing-function: step-end; }
+  100% { clip-path: inset(0 100% 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carga-decorativa-bloques { animation: none; clip-path: inset(0 40% 0 0); }
+}
 .acceso-distribucion .logo-hogardo,
 .acceso-distribucion .presentacion {
   display: none;
@@ -909,6 +951,15 @@ form button[type="submit"] {
     justify-content: center;
     align-self: stretch;
     padding: 32px;
+  }
+  .acceso-distribucion:has(#panel-sesion:not([hidden])) .carga-decorativa {
+    display: block;
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(280px, calc(100% - 64px));
+    margin: 0;
   }
   .acceso-distribucion:has(#panel-sesion:not([hidden])) .personajes-acceso {
     display: block;
@@ -957,6 +1008,7 @@ form button[type="submit"] {
   }
 }
 .pagina-acceso #usuario-conectado { color: #fff6ff; }
+.pagina-acceso #mis-hogares { margin-top: 64px; }
 .pagina-acceso #panel-sesion {
   color: #fff6ff;
   color-scheme: dark;

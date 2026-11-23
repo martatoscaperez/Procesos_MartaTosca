@@ -37,6 +37,7 @@ const repositorioUsuarios = usarMemoria
 // Comprobamos la conexión y la existencia de la tabla antes de arrancar.
 if (conexion) {
   await conexion.query('SELECT email FROM usuarios LIMIT 1');
+  await conexion.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil TEXT');
 }
 
 const servicioUsuarios = crearServicioUsuarios(repositorioUsuarios);
@@ -63,6 +64,7 @@ const puerto = process.env.PORT || 3000;
 
 // Permite leer el cuerpo JSON de las peticiones.
 app.use('/api/hogares', express.json({ limit: '850kb' }));
+app.use('/api/cuenta', express.json({ limit: '850kb' }));
 app.use(express.json());
 
 // Los errores de lectura del cuerpo también se devuelven en JSON.
@@ -452,6 +454,21 @@ app.get('/api/confirmar', async (req, res) => {
 // GET: consulta el usuario de la sesión actual.
 app.get('/api/sesion', exigirSesion, (req, res) => {
   res.json(req.usuario);
+});
+app.get('/api/cuenta', exigirSesion, async (req, res) => {
+  res.json(await servicioUsuarios.consultarPerfil(req.usuario.email));
+});
+app.post('/api/cuenta', exigirSesion, async (req, res) => {
+  const origen = req.get('origin');
+  if (origen && origen !== `${req.protocol}://${req.get('host')}` && origen !== process.env.APP_URL) {
+    return res.status(403).json({ error: 'El origen de la solicitud no está permitido.' });
+  }
+  if (!req.is('application/json')) return res.status(415).json({ error: 'Envía los datos en JSON.' });
+  try {
+    res.json(await servicioUsuarios.editarPerfil(req.usuario.email, req.body));
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.status ? error.message : 'No se pudo guardar tu perfil. Inténtalo de nuevo.' });
+  }
 });
 
 // POST: elimina la sesión del servidor y la cookie del navegador.

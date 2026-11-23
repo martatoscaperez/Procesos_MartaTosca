@@ -42,7 +42,7 @@ export function crearRepositorioHogaresPostgres(conexion) {
   return {
     async listarAvisos(id,email) {
       const {rows}=await conexion.query(
-        `SELECT a.id,a.secuencia::text,a.texto,a.creado_en::text AS fecha,a.editado_en IS NOT NULL AS editado,u.nombre,a.autor_email=$2 AS propio,
+        `SELECT a.id,a.secuencia::text,a.texto,a.creado_en::text AS fecha,a.editado_en IS NOT NULL AS editado,u.nombre,u.foto_perfil AS foto,a.autor_email=$2 AS propio,
           (a.autor_email<>$2 AND a.secuencia>coalesce((SELECT secuencia FROM public.lecturas_avisos WHERE hogar_id=$1 AND usuario_email=$2),0)) AS nuevo
           FROM public.avisos_hogar a JOIN public.usuarios u ON u.email=a.autor_email WHERE a.hogar_id=$1
           AND EXISTS (SELECT 1 FROM public.membresias_hogar WHERE hogar_id=$1 AND usuario_email=$2) ORDER BY a.secuencia`,[id,email]);
@@ -249,6 +249,16 @@ export function crearRepositorioHogaresPostgres(conexion) {
         return { ...creado, rol: 'administrador', nuevo: true };
       });
     },
+    async editarPerfil(id, email, cambios) {
+      const { rowCount } = await conexion.query(
+        `UPDATE public.hogares h SET nombre=$3,
+         foto=CASE WHEN $4::boolean THEN $5::text ELSE h.foto END
+         WHERE h.id=$1 AND EXISTS (SELECT 1 FROM public.membresias_hogar m
+           WHERE m.hogar_id=h.id AND m.usuario_email=$2 AND m.rol='administrador')`,
+        [id, email, cambios.nombre, Object.hasOwn(cambios, 'foto'), cambios.foto ?? null]
+      );
+      return rowCount === 1;
+    },
     async listar(email) {
       const { rows } = await conexion.query(
         `SELECT h.id,h.nombre,m.rol,h.creador_email=$1 AS propio FROM public.hogares h
@@ -265,7 +275,7 @@ export function crearRepositorioHogaresPostgres(conexion) {
       );
       if (!hogar) return null;
       const { rows: miembros } = await conexion.query(
-        `SELECT m.id,u.nombre,m.rol,m.usuario_email=$2 AS propia FROM public.membresias_hogar m JOIN public.usuarios u ON u.email=m.usuario_email
+        `SELECT m.id,u.nombre,u.foto_perfil AS foto,m.rol,m.usuario_email=$2 AS propia FROM public.membresias_hogar m JOIN public.usuarios u ON u.email=m.usuario_email
          WHERE m.hogar_id=$1 AND u.estado='activo' ORDER BY m.incorporado_en,m.usuario_email`, [id, email]
       );
       return { ...hogar, miembros };
@@ -506,7 +516,10 @@ export function crearRepositorioHogaresMemoria(usuarios) {
   return {
     async listarAvisos(id,email) {
       if(!hogares.get(id)?.miembros.has(email))return {avisos:[],sinLeer:false,cursor:'0'};
-      const lista=await Promise.all((avisos.get(id)||[]).map(async a=>({...a,nombre:(await usuarios.buscarPorEmail(a.autor)).nombre,propio:a.autor===email,nuevo:a.autor!==email&&Number(a.secuencia)>(lecturas.get(id+email)||0)})));
+      const lista=await Promise.all((avisos.get(id)||[]).map(async a=>{
+        const usuario = await usuarios.buscarPorEmail(a.autor);
+        return {...a,nombre:usuario.nombre,foto:usuario.foto??null,propio:a.autor===email,nuevo:a.autor!==email&&Number(a.secuencia)>(lecturas.get(id+email)||0)};
+      }));
       return {avisos:lista,sinLeer:lista.some(a=>a.nuevo),cursor:lista.at(-1)?.secuencia||'0'};
     },
     async guardarAviso(id,email,aviso,texto,editar) {
@@ -634,6 +647,13 @@ export function crearRepositorioHogaresMemoria(usuarios) {
       hogares.set(hogar.id, { ...hogar, creador: email, invitacion, miembros: new Map([[email, 'administrador']]) });
       return { id: hogar.id, nombre: hogar.nombre, rol: 'administrador', nuevo: true };
     },
+    async editarPerfil(id, email, cambios) {
+      const hogar = hogares.get(id);
+      if (hogar?.miembros.get(email) !== 'administrador') return false;
+      hogar.nombre = cambios.nombre;
+      if (Object.hasOwn(cambios, 'foto')) hogar.foto = cambios.foto;
+      return true;
+    },
     async listar(email) {
       return [...hogares.values()].filter(hogar => hogar.miembros.has(email))
         .map(hogar => ({ id: hogar.id, nombre: hogar.nombre, rol: hogar.miembros.get(email), propio: hogar.creador === email }));
@@ -645,7 +665,7 @@ export function crearRepositorioHogaresMemoria(usuarios) {
       for (const [emailMiembro, rol] of hogar.miembros) {
         const usuario = await usuarios.buscarPorEmail(emailMiembro);
         if (usuario?.estado === 'activo') miembros.push({
-          id: idMiembro(id, emailMiembro), nombre: usuario.nombre, rol, propia: email === emailMiembro
+          id: idMiembro(id, emailMiembro), nombre: usuario.nombre, foto: usuario.foto ?? null, rol, propia: email === emailMiembro
         });
       }
       return { id, nombre: hogar.nombre, moneda: hogar.moneda, foto: hogar.foto, rol: hogar.miembros.get(email), miembros };
