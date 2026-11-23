@@ -447,7 +447,9 @@ Para ejecutar únicamente la prueba de PostgreSQL:
 node --env-file=.env --test pruebas/postgres.test.js
 ```
 
-Hay 57 pruebas:
+La suite actual incluye 77 pruebas, contando los casos de hogares, tareas,
+finanzas, normas, calendario, compra y avisos del Sprint 2. La base del
+Sprint 1 incluye los siguientes grupos:
 
 - 30 de lógica de usuarios.
 - Una prueba HTTP con comprobaciones de sesión, logout y permisos.
@@ -484,7 +486,7 @@ Se utiliza GitHub Flow:
 `.github/workflows/ci.yml` ejecuta las pruebas en cada pull request
 y en los cambios de main.
 
-El CI prepara una base PostgreSQL temporal y ejecuta las 57 pruebas.
+El CI prepara una base PostgreSQL temporal y ejecuta las 77 pruebas.
 No necesita las credenciales de Neon.
 
 ## Despliegue
@@ -526,6 +528,37 @@ en Google Cloud. El archivo `render.yaml` conserva la configuración anterior.
 Neon debe mantenerse activo porque sigue siendo la base de datos principal.
 
 La aplicación publicada funciona independientemente del servidor local.
+
+### Verificación del despliegue del Sprint 2
+
+La revisión funcional del 23 de noviembre de 2026 se realizó en Cloud Run
+con dos sesiones independientes en el hogar `Validación Sprint 2`.
+Se comprobaron acceso, pertenencia al piso, permisos de normas y tareas,
+consulta compartida de gastos, entrega de avisos por SSE, reintentos sin
+duplicados y lectura individual. Las 11 comprobaciones terminaron correctamente.
+También se guardó y recargó una edición de tarea desde el navegador.
+
+El comprobador manual se ejecuta con:
+
+```bash
+npm run comprobar-despliegue -- --url https://SERVICIO --hogar UUID_DEL_HOGAR_DE_VALIDACION
+```
+
+Las credenciales se leen de `USUARIO_PRUEBA_EMAIL`, `USUARIO_PRUEBA_CLAVE`,
+`ADMIN_EMAIL` y `ADMIN_CLAVE`, configuradas en el entorno o en `.env`.
+La primera cuenta debe administrar ese hogar y la segunda ser miembro;
+el rol global de la segunda cuenta no sustituye al rol del hogar.
+Debe existir una tarea pendiente de la primera cuenta. El script rechaza
+cualquier hogar cuyo nombre no sea `Validación Sprint 2` y retira únicamente
+el aviso temporal que crea. Registra la lectura de los avisos de la primera
+cuenta, por lo que debe utilizarse con cuentas dedicadas a validación.
+Antes de ejecutarlo, cerrar el chat en todas las ventanas de ambas cuentas:
+la lectura es por usuario y una ventana abierta lo marcaría como leído
+durante la comprobación. No se imprimen contraseñas ni cookies.
+
+La prueba se ejecuta contra la URL publicada; no arranca un servidor local.
+Una ejecución correcta comprueba esos recorridos, sin equivaler a una prueba
+de carga, de múltiples instancias o de todos los proveedores externos.
 
 Referencia: [buildpacks de Node.js](https://docs.cloud.google.com/docs/buildpacks/nodejs)
 y [sesiones en Cloud Run](https://docs.cloud.google.com/run/docs/configuring/session-affinity).

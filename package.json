@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env servidor/api.js",
     "test": "node --test",
+    "comprobar-despliegue": "node --env-file-if-exists=.env scripts/comprobar-despliegue.js",
     "crear-admin": "node --env-file-if-exists=.env scripts/crear-admin.js",
     "migrar-google": "node --env-file-if-exists=.env scripts/migrar-google.js",
     "migrar-hogares": "node --env-file-if-exists=.env scripts/migrar-hogares.js"
