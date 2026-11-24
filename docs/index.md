@@ -10,6 +10,7 @@ Esta documentación describe la versión comprobada el **24 de noviembre de 2026
 | [Arquitectura](arquitectura.md) | Capas, dependencias, almacenamiento y despliegue. |
 | [Decisiones](decisiones.md) | Decisiones de diseño, sus motivos y sus consecuencias. |
 | [Procesos](procesos.md) | Recorridos de uso y forma de desarrollar, probar y publicar los cambios. |
+| [Configuración](configuracion.md) | Instalación, variables, PostgreSQL, correo, Google y despliegue. |
 | [Registro de cambios](log.md) | Evolución del proyecto con fechas y referencias a Git. |
 | [Sprint 1](sprint-1.md) | Base técnica y funcional que quedó cerrada el 3 de noviembre. |
 | [Sprint 2](sprint-2.md) | Hitos, seguimiento, dedicación comunicada y validación del incremento. |
