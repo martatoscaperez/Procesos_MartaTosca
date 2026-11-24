@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { crearRepositorioUsuarios } from '../servidor/datos.js';
-import { crearServicioUsuarios } from '../servidor/logica.js';
-import { crearServicioIdentidadGoogle } from '../servidor/identidad-google.js';
-import { crearOAuthGoogle } from '../servidor/oauth-google.js';
+import { crearRepositorioUsuarios } from '../servidor/datos/datos.js';
+import { crearServicioUsuarios } from '../servidor/logica/logica.js';
+import { crearServicioIdentidadGoogle } from '../servidor/logica/identidad-google.js';
+import { crearOAuthGoogle } from '../servidor/infraestructura/oauth-google.js';
 
 process.env.ALLOWED_DOMAINS = 'example.com,gmail.com';
 const perfil = { sub: 'google-123', email: 'marta@example.com', email_verified: true, name: 'Marta' };

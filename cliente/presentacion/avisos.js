@@ -1,4 +1,4 @@
-import { solicitarHogares } from './comunicacion/rest.js';
+import { solicitarHogares, abrirCanalAvisos } from '../comunicacion/rest.js';
 export function prepararAvisos(id) {
   const $=id=>document.getElementById(id),ruta='/'+encodeURIComponent(id)+'/avisos';
   const lista=$('mensajes-avisos'),form=$('enviar-aviso'),dialogo=$('dialogo-editar-aviso'),editor=$('formulario-editar-aviso');
@@ -47,7 +47,7 @@ export function prepararAvisos(id) {
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)cargar();});window.addEventListener('focus',cargar);
   function conectar(){
     if(canal)return;
-    canal=new EventSource('/api/hogares'+ruta+'/en-vivo');
+    canal=abrirCanalAvisos(id);
     canal.addEventListener('cambio',cargar);
     canal.addEventListener('open',()=>{if($('estado-avisos').dataset.conexion==='error'){$('estado-avisos').textContent='';delete $('estado-avisos').dataset.conexion;}cargar();});
     canal.addEventListener('error',()=>{if(visible()){$('estado-avisos').textContent='Reconectando con el chat… Tus mensajes guardados se conservan.';$('estado-avisos').dataset.conexion='error';}});

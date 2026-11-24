@@ -1,4 +1,4 @@
-import { solicitarHogares } from './comunicacion/rest.js';
+import { solicitarHogares } from '../comunicacion/rest.js';
 export function prepararNormas(id,hogar) {
   const $=id=>document.getElementById(id),ruta='/'+encodeURIComponent(id)+'/normas',administrador=hogar.rol==='administrador';
   const formulario=$('formulario-norma'),dialogo=$('dialogo-norma');let normaActual,ocupado=false,revision=0;

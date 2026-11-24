@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { crearConexion } from '../servidor/conexion.js';
+import { crearConexion } from '../servidor/datos/conexion.js';
 import {
   crearRepositorioUsuariosPostgres
-} from '../servidor/datos-postgres.js';
-import { crearServicioUsuarios } from '../servidor/logica.js';
-import { crearServicioIdentidadGoogle } from '../servidor/identidad-google.js';
+} from '../servidor/datos/datos-postgres.js';
+import { crearServicioUsuarios } from '../servidor/logica/logica.js';
+import { crearServicioIdentidadGoogle } from '../servidor/logica/identidad-google.js';
 process.env.ALLOWED_DOMAINS = 'example.com';
 
 test(
@@ -24,7 +24,7 @@ test(
       // La tabla temporal solo existe en esta conexión.
       // Oculta la tabla real para las consultas de esta prueba.
       const esquema = await readFile(
-        new URL('../servidor/esquema.sql', import.meta.url),
+        new URL('../servidor/datos/esquema.sql', import.meta.url),
         'utf8'
       );
 

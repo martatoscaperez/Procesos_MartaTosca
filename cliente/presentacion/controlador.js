@@ -8,7 +8,7 @@ import {
   cerrarSesion,
   reenviarConfirmacion,
   consultarGoogle
-} from './comunicacion/rest.js';
+} from '../comunicacion/rest.js';
 
 // Localizamos los elementos de la página.
 const botonLogin = document.getElementById('mostrar-login');

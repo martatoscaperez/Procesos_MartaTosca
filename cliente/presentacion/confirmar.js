@@ -1,4 +1,4 @@
-import { confirmarCuenta } from './comunicacion/rest.js';
+import { confirmarCuenta } from '../comunicacion/rest.js';
 
 const parametros = new URLSearchParams(location.hash.slice(1));
 const email = parametros.get('email');

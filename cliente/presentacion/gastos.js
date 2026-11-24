@@ -1,4 +1,4 @@
-import { solicitarHogares } from './comunicacion/rest.js';
+import { solicitarHogares } from '../comunicacion/rest.js';
 export function prepararGastos(id, hogar) {
   const $=id=>document.getElementById(id), ruta='/'+encodeURIComponent(id)+'/gastos';
   const form=$('formulario-gasto'), dialogo=$('dialogo-gasto'), devolucion=$('formulario-devolucion');

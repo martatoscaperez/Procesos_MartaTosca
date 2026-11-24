@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import bcrypt from 'bcrypt';
-import { crearServicioUsuarios } from '../servidor/logica.js';
-import { crearRepositorioUsuarios } from '../servidor/datos.js';
+import { crearServicioUsuarios } from '../servidor/logica/logica.js';
+import { crearRepositorioUsuarios } from '../servidor/datos/datos.js';
 process.env.ALLOWED_DOMAINS = 'example.com';
 
 test('el perfil personal cambia nombre y foto sin alterar email, contraseña ni permisos', async () => {
@@ -37,7 +37,7 @@ test('el perfil rechaza nombres, imágenes inválidas y cuentas inactivas', asyn
   assert.equal((await servicio.consultarPerfil('marta@example.com')).nombre, 'Marta');
 });
 test('una cuenta nueva incluye nombre, rol y estado pendiente', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   const usuario = await servicio.agregarUsuario(
     ' MARTA@example.com ',
@@ -87,7 +87,7 @@ test('guarda un hash válido y no expone secretos en sus resultados', async () =
 });
 
 test('rechaza un email duplicado aunque cambien mayúsculas y espacios', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -98,7 +98,7 @@ test('rechaza un email duplicado aunque cambien mayúsculas y espacios', async (
 });
 
 test('rechaza un alta sin email', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.agregarUsuario('   ', 'Marta', 'ejemplo'),
@@ -107,7 +107,7 @@ test('rechaza un alta sin email', async () => {
 });
 
 test('rechaza un alta sin nombre', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.agregarUsuario('marta@example.com', '   ', 'ejemplo'),
@@ -116,7 +116,7 @@ test('rechaza un alta sin nombre', async () => {
 });
 
 test('rechaza un alta sin contraseña', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.agregarUsuario('marta@example.com', 'Marta', ''),
@@ -125,7 +125,7 @@ test('rechaza un alta sin contraseña', async () => {
 });
 
 test('rechaza contraseñas que superan el límite de bcrypt', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.agregarUsuario(
@@ -138,7 +138,7 @@ test('rechaza contraseñas que superan el límite de bcrypt', async () => {
 });
 
 test('el listado incluye las cuentas creadas', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
   await servicio.agregarUsuario('ana@example.com', 'Ana', 'ejemplo');
@@ -152,7 +152,7 @@ test('el listado incluye las cuentas creadas', async () => {
 });
 
 test('una cuenta pendiente no está activa', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -160,7 +160,7 @@ test('una cuenta pendiente no está activa', async () => {
 });
 
 test('eliminar una cuenta cambia su estado y deja de estar activa', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
   await servicio.eliminarUsuario('marta@example.com');
@@ -172,7 +172,7 @@ test('eliminar una cuenta cambia su estado y deja de estar activa', async () => 
 });
 
 test('rechaza eliminar una cuenta inexistente', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.eliminarUsuario('nadie@example.com'),
@@ -205,7 +205,7 @@ test('permite iniciar sesión a una cuenta activa con la clave correcta', async 
 });
 
 test('rechaza el login de una cuenta pendiente', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -232,7 +232,7 @@ test('rechaza una contraseña incorrecta', async () => {
 });
 
 test('rechaza el login de una cuenta inexistente', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.iniciarSesion('nadie@example.com', 'ejemplo'),
@@ -241,7 +241,7 @@ test('rechaza el login de una cuenta inexistente', async () => {
 });
 
 test('rechaza el login de una cuenta eliminada', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
   await servicio.eliminarUsuario('marta@example.com');
@@ -253,7 +253,7 @@ test('rechaza el login de una cuenta eliminada', async () => {
 });
 
 test('rechaza el login sin contraseña', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.iniciarSesion('marta@example.com', ''),
@@ -319,7 +319,7 @@ test('confirmar una cuenta permite iniciar sesión', async () => {
 });
 
 test('rechaza un código incorrecto sin activar la cuenta', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -363,7 +363,7 @@ test('rechaza un código caducado', async () => {
 });
 
 test('un código de confirmación solo puede usarse una vez', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -377,7 +377,7 @@ test('un código de confirmación solo puede usarse una vez', async () => {
 });
 
 test('generar otro código invalida el anterior', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -397,7 +397,7 @@ test('generar otro código invalida el anterior', async () => {
 });
 
 test('rechaza confirmar una cuenta eliminada', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -413,7 +413,7 @@ test('rechaza confirmar una cuenta eliminada', async () => {
 });
 
 test('rechaza códigos con formato incorrecto', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
   await servicio.generarConfirmacion('marta@example.com');
@@ -429,7 +429,7 @@ test('rechaza códigos con formato incorrecto', async () => {
 });
 
 test('rechaza generar un código para una cuenta inexistente o activa', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.generarConfirmacion('nadie@example.com'),
@@ -448,7 +448,7 @@ test('rechaza generar un código para una cuenta inexistente o activa', async ()
 });
 
 test('consulta una cuenta activa y devuelve solo datos públicos', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -466,7 +466,7 @@ test('consulta una cuenta activa y devuelve solo datos públicos', async () => {
 });
 
 test('rechaza consultar como activa una cuenta pendiente', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 
@@ -477,7 +477,7 @@ test('rechaza consultar como activa una cuenta pendiente', async () => {
 });
 
 test('rechaza consultar como activa una cuenta inexistente', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await assert.rejects(
     () => servicio.obtenerUsuarioActivo('nadie@example.com'),
@@ -486,7 +486,7 @@ test('rechaza consultar como activa una cuenta inexistente', async () => {
 });
 
 test('rechaza consultar una cuenta eliminada después del login', async () => {
-  const servicio = crearServicioUsuarios();
+  const servicio = crearServicioUsuarios(crearRepositorioUsuarios());
 
   await servicio.agregarUsuario('marta@example.com', 'Marta', 'ejemplo');
 

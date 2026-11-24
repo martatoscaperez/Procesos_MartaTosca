@@ -5,7 +5,7 @@ import { clasificarRanking } from './ranking.js';
 import { prepararNormas } from './normas.js';
 import { prepararGastos } from './gastos.js';
 import { prepararLoteria } from './loteria.js';
-import { consultarSesion, solicitarHogares, cerrarSesion } from './comunicacion/rest.js';
+import { consultarSesion, solicitarHogares, cerrarSesion } from '../comunicacion/rest.js';
 import { prepararCalendario } from './calendario.js';
 import { prepararCompra } from './compra.js';
 

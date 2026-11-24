@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { crearCanalAvisos } from '../servidor/avisos-en-vivo.js';
-import { crearApiHogares } from '../servidor/api-hogares.js';
-import { ErrorHogar } from '../servidor/hogares.js';
+import { crearCanalAvisos } from '../servidor/datos/avisos-en-vivo.js';
+import { crearApiHogares } from '../servidor/api/api-hogares.js';
+import { ErrorHogar } from '../servidor/logica/hogares.js';
 test('el canal aísla pisos y elimina suscripciones cerradas',async()=>{
  const canal=crearCanalAvisos();let a=0,b=0;const cerrar=canal.suscribir('uno',()=>a++);canal.suscribir('dos',()=>b++);
  await canal.publicar('uno');assert.equal(a,1);assert.equal(b,0);cerrar();await canal.publicar('uno');assert.equal(a,1);canal.cerrar();

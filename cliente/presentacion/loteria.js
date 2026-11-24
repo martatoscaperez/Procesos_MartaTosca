@@ -1,4 +1,4 @@
-import { solicitarHogares } from './comunicacion/rest.js';
+import { solicitarHogares } from '../comunicacion/rest.js';
 
 export function prepararLoteria(id, miembros, actualizar) {
   const porId = nombre => document.getElementById(nombre);

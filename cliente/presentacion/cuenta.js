@@ -1,23 +1,4 @@
-async function solicitarCuenta(datos) {
-  const controlador = new AbortController();
-  const espera = setTimeout(() => controlador.abort(), 15000);
-  try {
-    const respuesta = await fetch('/api/cuenta', {
-      method: datos === undefined ? 'GET' : 'POST', cache: 'no-store', signal: controlador.signal,
-      headers: datos === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: datos === undefined ? undefined : JSON.stringify(datos)
-    });
-    if (!respuesta.headers.get('content-type')?.includes('application/json')) {
-      throw new Error(respuesta.status === 404 ? 'Reinicia el servidor local para activar los ajustes de cuenta.' : 'No se pudo acceder a los ajustes de tu cuenta.');
-    }
-    const resultado = await respuesta.json();
-    if (!respuesta.ok) throw new Error(resultado.error || 'No se pudieron guardar los cambios.');
-    return resultado;
-  } catch (error) {
-    if (error.name === 'AbortError') throw new Error('No se pudo confirmar la respuesta. Recarga para comprobar los datos guardados.');
-    throw error;
-  } finally { clearTimeout(espera); }
-}
+import { solicitarCuenta } from '../comunicacion/rest.js';
 
 export function prepararCuenta(usuario) {
   const porId = id => document.getElementById(id);

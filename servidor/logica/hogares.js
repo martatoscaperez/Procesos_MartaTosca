@@ -1,4 +1,6 @@
+import { ErrorHogar } from '../compartido/errores.js';
 import { validarFoto as validarImagen } from './imagenes.js';
+import { politicaTurnos, planificarTurno } from './turnos.js';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -13,12 +15,7 @@ function fechaValida(fecha) {
 }
 
 
-export class ErrorHogar extends Error {
-  constructor(mensaje, status) {
-    super(mensaje);
-    this.status = status;
-  }
-}
+export { ErrorHogar } from '../compartido/errores.js';
 function validarFoto(foto) {
   try { validarImagen(foto); }
   catch (error) { throw new ErrorHogar(error.message, 400); }
@@ -44,7 +41,7 @@ export function crearServicioHogares(repositorio, reloj = () => new Date()) {
       if (datos.limite && (!fechaValida(datos.limite) || datos.limite < fechaPiso.format(reloj()))) throw new ErrorHogar('Elige una fecha de hoy en adelante.', 400);
       if (!datos.limite && datos.frecuencia !== 'puntual') throw new ErrorHogar('Las tareas recurrentes necesitan una fecha de inicio.', 400);
       if (!hogar.miembros.some(m => m.id === datos.responsable)) throw new ErrorHogar('Elige un compañero del piso.', 400);
-      if (!await repositorio.modificarTareaPendiente(id,email,tarea,{...datos,titulo:datos.titulo.trim(),limite:datos.limite || null},fechaPiso.format(reloj()))) throw new ErrorHogar('La tarea ya no se puede editar.', 409);
+      if (!await repositorio.modificarTareaPendiente(id,email,tarea,{...datos,titulo:datos.titulo.trim(),limite:datos.limite || null},fechaPiso.format(reloj()), politicaTurnos)) throw new ErrorHogar('La tarea ya no se puede editar.', 409);
     },
     async avisos(id,email) {await this.consultar(id,email);return repositorio.listarAvisos(id,email);},
     async guardarAviso(id,email,aviso,texto,editar=false) {
@@ -256,7 +253,7 @@ export function crearServicioHogares(repositorio, reloj = () => new Date()) {
     async tareas(id, email) {
       const hogar = await this.consultar(id, email);
       const hoy = fechaPiso.format(reloj());
-      const turnos = await repositorio.prepararTurnos(id, email, hoy);
+      const turnos = await repositorio.prepararTurnos(id, email, hoy, planificarTurno);
       const tareas = (await repositorio.listarTareas(id, email)).map(tarea => {
         const tarde = Boolean(tarea.limite && (tarea.completada ?? hoy) > tarea.limite);
         return { ...tarea, tarde, puntos: tarde ? -1 : Number(Boolean(tarea.completada)) };
@@ -289,7 +286,7 @@ export function crearServicioHogares(repositorio, reloj = () => new Date()) {
       const tarea = { id: randomUUID(), titulo: titulo.trim(), limite, responsable, participantes, diaMes };
       const creada = frecuencia === 'puntual'
         ? await repositorio.crearTarea(id, email, tarea)
-        : await repositorio.crearTurno(id, email, tarea);
+        : await repositorio.crearTurno(id, email, tarea, politicaTurnos);
       if (!creada) {
         throw new ErrorHogar('Solo puedes asignar tareas a miembros del piso.', 403);
       }

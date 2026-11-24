@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { crearCorreoConfirmacion } from '../servidor/correo.js';
-import { crearServicioConfirmacion } from '../servidor/confirmacion.js';
-import { crearServicioUsuarios } from '../servidor/logica.js';
-import { crearRepositorioUsuarios } from '../servidor/datos.js';
+import { crearCorreoConfirmacion } from '../servidor/infraestructura/correo.js';
+import { crearServicioConfirmacion } from '../servidor/logica/confirmacion.js';
+import { crearServicioUsuarios } from '../servidor/logica/logica.js';
+import { crearRepositorioUsuarios } from '../servidor/datos/datos.js';
 process.env.ALLOWED_DOMAINS = 'example.com';
 
 function preparar(fallar = false) {

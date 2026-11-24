@@ -1,4 +1,4 @@
-import { solicitarHogares } from './comunicacion/rest.js';
+import { solicitarHogares } from '../comunicacion/rest.js';
 
 export function prepararCalendario(id) {
   const elemento = nombre => document.getElementById(nombre);

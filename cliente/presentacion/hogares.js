@@ -1,4 +1,4 @@
-import { solicitarHogares } from './comunicacion/rest.js';
+import { solicitarHogares } from '../comunicacion/rest.js';
 
 const porId = id => document.getElementById(id);
 const crear = porId('elegir-crear-piso');

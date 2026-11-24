@@ -2,9 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { crearConexion } from '../servidor/conexion.js';
-import { crearRepositorioHogaresPostgres } from '../servidor/datos-hogares.js';
-import { crearServicioHogares } from '../servidor/hogares.js';
+import { crearConexion } from '../servidor/datos/conexion.js';
+import { crearRepositorioHogaresPostgres } from '../servidor/datos/datos-hogares.js';
+import { crearServicioHogares } from '../servidor/logica/hogares.js';
+import { crearFinanzas } from '../servidor/logica/finanzas.js';
+import { crearRepositorioFinanzasPostgres } from '../servidor/datos/datos-finanzas.js';
 
 test('PostgreSQL conserva pisos, membresías y permisos usando tablas temporales', {
   skip: !process.env.DATABASE_URL
@@ -18,7 +20,7 @@ test('PostgreSQL conserva pisos, membresías y permisos usando tablas temporales
     await cliente.query("CREATE TEMP TABLE usuarios (email TEXT PRIMARY KEY, nombre TEXT NOT NULL, estado TEXT NOT NULL, foto_perfil TEXT)");
     await cliente.query(`INSERT INTO usuarios (email,nombre,estado) VALUES
       ('marta@example.com','Marta','activo'), ('alex@example.com','Álex','activo')`);
-    const sql = await readFile(new URL('../servidor/migracion-hogares.sql', import.meta.url), 'utf8');
+    const sql = await readFile(new URL('../servidor/datos/migracion-hogares.sql', import.meta.url), 'utf8');
     await cliente.query(sql.replaceAll('public.', '').replaceAll('CREATE TABLE IF NOT EXISTS', 'CREATE TEMP TABLE'));
     const conexionTemporal = {
       query: (texto, valores) => cliente.query(texto.replaceAll('public.', 'pg_temp.'), valores),
@@ -42,6 +44,21 @@ test('PostgreSQL conserva pisos, membresías y permisos usando tablas temporales
     assert.equal(piso.miembros.length, 2);
     assert.equal(piso.rol, 'miembro');
     assert.equal(piso.moneda, 'GBP');
+    const finanzas = crearFinanzas(crearRepositorioFinanzasPostgres(conexionTemporal), servicio);
+    const gastoId = randomUUID();
+    const pagador = piso.miembros.find(m => !m.propia);
+    await finanzas.guardar(hogar.id, 'marta@example.com', {
+      id: gastoId, nuevo: true, concepto: 'Compra por capas', importe: '10,01', fecha: '2026-11-09',
+      pagador: pagador.id, reparto: piso.miembros.map(m => ({ id: m.id }))
+    });
+    const gastos = await finanzas.consultar(hogar.id, 'alex@example.com');
+    assert.equal(gastos.movimientos[0].importe, 1001);
+    assert.equal(gastos.movimientos[0].reparto.reduce((s, p) => s + p.importe, 0), 1001);
+    await assert.rejects(finanzas.guardar(hogar.id, 'alex@example.com', {
+      id: randomUUID(), concepto: 'No se guarda', importe: '0', fecha: '2026-11-09'
+    }));
+    assert.equal((await finanzas.consultar(hogar.id, 'alex@example.com')).movimientos.length, 1);
+    await finanzas.eliminar(hogar.id, 'marta@example.com', gastoId);
     assert.equal(piso.foto, foto);
     await cliente.query("UPDATE usuarios SET foto_perfil=$1 WHERE email='marta@example.com'", [foto]);
     assert.equal((await servicio.consultar(hogar.id, 'alex@example.com')).miembros.find(miembro => miembro.nombre === 'Marta').foto, foto);

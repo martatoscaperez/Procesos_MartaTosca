@@ -1,27 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ErrorHogar } from './hogares.js';
-
-function moverFechaTurno(fecha, diaMes, direccion = 1) {
-  const dia = new Date(fecha);
-  if (diaMes === null) {
-    dia.setUTCDate(dia.getUTCDate() + 7 * direccion);
-  } else {
-    dia.setUTCMonth(dia.getUTCMonth() + direccion, 1);
-    const fin = new Date(dia);
-    fin.setUTCMonth(fin.getUTCMonth() + 1, 0);
-    dia.setUTCDate(Math.min(diaMes, fin.getUTCDate()));
-  }
-  return dia.toISOString().slice(0, 10);
-}
-
-function siguienteMiembro(participantes, posicion, activos) {
-  for (let paso = 0; paso < participantes.length; paso += 1) {
-    const indice = (posicion + paso) % participantes.length;
-    const miembro = activos.get(participantes[indice]);
-    if (miembro) return { miembro, siguiente: (indice + 1) % participantes.length };
-  }
-  return null;
-}
+import { ErrorHogar } from '../compartido/errores.js';
 
 async function enTransaccion(conexion, operacion) {
   const cliente = await conexion.connect();
@@ -81,7 +59,7 @@ export function crearRepositorioHogaresPostgres(conexion) {
         await c.query('DELETE FROM public.normas_hogar WHERE hogar_id=$1 AND id=$2',[id,norma]);return true;
       });
     },
-    modificarTareaPendiente(id,email,tarea,datos,hoy) {
+    modificarTareaPendiente(id,email,tarea,datos,hoy, politica) {
       return enTransaccion(conexion, async cliente => {
         await cliente.query('SELECT id FROM public.hogares WHERE id=$1 FOR UPDATE',[id]);
         const {rows: miembros} = await cliente.query("SELECT m.id,m.usuario_email FROM public.membresias_hogar m JOIN public.usuarios u ON u.email=m.usuario_email WHERE m.hogar_id=$1 AND u.estado='activo'",[id]);
@@ -90,24 +68,19 @@ export function crearRepositorioHogaresPostgres(conexion) {
         const {rows:[actual]}=await cliente.query('SELECT * FROM public.tareas_hogar WHERE hogar_id=$1 AND id=$2 AND completada_el IS NULL AND (fecha_limite IS NULL OR fecha_limite >= $3) FOR UPDATE',[id,tarea,hoy]);
         if (!actual) return false;
         let turno=actual.turno_id;
-        let participantes=[destino.id];
-        if(turno && actual.responsable_email===destino.usuario_email) {
-          const {rows:[anterior]}=await cliente.query('SELECT participantes FROM public.turnos_hogar WHERE id=$1',[turno]);
-          if(anterior?.participantes.includes(destino.id)) {
-            const indice=anterior.participantes.indexOf(destino.id);
-            participantes=[...anterior.participantes.slice(indice),...anterior.participantes.slice(0,indice)];
-          }
-        }
+        const anterior = turno ? (await cliente.query('SELECT participantes FROM public.turnos_hogar WHERE id=$1',[turno])).rows[0] : null;
+        const plan = politica.planificarCambioTurno(anterior?.participantes, destino.id, actual.responsable_email===destino.usuario_email, datos.limite, datos.frecuencia);
+        const participantes = plan.participantes;
         if (turno) {
           // Stop the previous schedule while retaining every historical task.
           await cliente.query('UPDATE public.tareas_hogar SET turno_id=NULL WHERE turno_id=$1',[turno]);
           await cliente.query('DELETE FROM public.turnos_hogar WHERE id=$1',[turno]);
         }
         turno=null;
-        if(datos.frecuencia!=='puntual') {
+        if(plan.recurrente) {
           turno=randomUUID();
-          const dia=datos.frecuencia==='mensual'?Number(datos.limite.slice(-2)):null;
-          await cliente.query('INSERT INTO public.turnos_hogar (id,hogar_id,titulo,participantes,siguiente_fecha,siguiente_posicion,dia_mes) VALUES ($1,$2,$3,$4,$5,$7,$6)',[turno,id,datos.titulo,participantes,moverFechaTurno(datos.limite,dia),dia,1 % participantes.length]);
+          const dia=plan.diaMes;
+          await cliente.query('INSERT INTO public.turnos_hogar (id,hogar_id,titulo,participantes,siguiente_fecha,siguiente_posicion,dia_mes) VALUES ($1,$2,$3,$4,$5,$7,$6)',[turno,id,datos.titulo,participantes,plan.siguienteFecha,dia,plan.siguientePosicion]);
         }
         await cliente.query('UPDATE public.tareas_hogar SET titulo=$3,fecha_limite=$4,responsable_email=$5,turno_id=$6 WHERE hogar_id=$1 AND id=$2',[id,tarea,datos.titulo,datos.limite,destino.usuario_email,turno]);
         return true;
@@ -280,7 +253,7 @@ export function crearRepositorioHogaresPostgres(conexion) {
       );
       return { ...hogar, miembros };
     },
-    async prepararTurnos(id, email, hoy) {
+    async prepararTurnos(id, email, hoy, planificar) {
       return enTransaccion(conexion, async cliente => {
         await cliente.query('SELECT id FROM public.hogares WHERE id=$1 FOR UPDATE', [id]);
         const { rows: miembros } = await cliente.query(
@@ -295,21 +268,16 @@ export function crearRepositorioHogaresPostgres(conexion) {
         );
         const proximos = [];
         for (const turno of turnos) {
-          let fecha = turno.siguiente_fecha;
-          let posicion = turno.siguiente_posicion;
-          let siguiente = siguienteMiembro(turno.participantes, posicion, activos);
-          let generadas = 0;
-          while (siguiente && moverFechaTurno(fecha, turno.dia_mes, -1) < hoy && generadas < 52) {
+          const plan = planificar(turno.siguiente_fecha, turno.siguiente_posicion, turno.participantes, turno.dia_mes, activos, hoy);
+          for (const generada of plan.tareas) {
             await cliente.query(
               `INSERT INTO public.tareas_hogar (id,hogar_id,responsable_email,titulo,fecha_limite,turno_id)
                VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (turno_id,fecha_limite) DO NOTHING`,
-              [randomUUID(), id, siguiente.miembro.usuario_email, turno.titulo, fecha, turno.id]
+              [randomUUID(), id, generada.miembro.usuario_email, turno.titulo, generada.fecha, turno.id]
             );
-            fecha = moverFechaTurno(fecha, turno.dia_mes);
-            posicion = siguiente.siguiente;
-            siguiente = siguienteMiembro(turno.participantes, posicion, activos);
-            generadas += 1;
           }
+          const { fecha, posicion, siguiente } = plan;
+          const generadas = plan.tareas.length;
           if (generadas) await cliente.query(
             'UPDATE public.turnos_hogar SET siguiente_fecha=$2,siguiente_posicion=$3 WHERE id=$1',
             [turno.id, fecha, posicion]
@@ -331,7 +299,7 @@ export function crearRepositorioHogaresPostgres(conexion) {
       );
       return rows;
     },
-    crearTurno(id, email, tarea) {
+    crearTurno(id, email, tarea, politica) {
       return enTransaccion(conexion, async cliente => {
         await cliente.query('SELECT id FROM public.hogares WHERE id=$1 FOR UPDATE', [id]);
         const { rows: miembros } = await cliente.query(
@@ -347,7 +315,7 @@ export function crearRepositorioHogaresPostgres(conexion) {
         await cliente.query(
           `INSERT INTO public.turnos_hogar (id,hogar_id,titulo,participantes,siguiente_fecha,siguiente_posicion,dia_mes)
            VALUES ($1,$2,$3,$4,$5,$6,$7)`, [
-            tarea.id, id, tarea.titulo, participantes, moverFechaTurno(tarea.limite, tarea.diaMes),
+            tarea.id, id, tarea.titulo, participantes, politica.moverFechaTurno(tarea.limite, tarea.diaMes),
             1 % participantes.length, tarea.diaMes
           ]
         );
@@ -542,24 +510,21 @@ export function crearRepositorioHogaresMemoria(usuarios) {
       else if(indice>=0)lista.splice(indice,1);
       return true;
     },
-    async modificarTareaPendiente(id,email,tarea,datos,hoy) {
+    async modificarTareaPendiente(id,email,tarea,datos,hoy, politica) {
       const miembros=hogares.get(id)?.miembros;
       const destino=miembros && [...miembros.keys()].find(m=>idMiembro(id,m)===datos.responsable);
       const actual=tareas.get(id)?.find(t=>t.id===tarea);
       if(!miembros?.has(email)||!destino||!actual||actual.completada||(actual.limite && actual.limite<hoy)) return false;
       const anterior=(turnos.get(id)||[]).find(t=>t.id===actual.turnoId);
-      let participantes=[datos.responsable];
-      if(anterior && actual.emailResponsable===destino && anterior.participantes.includes(datos.responsable)) {
-        const indice=anterior.participantes.indexOf(datos.responsable);
-        participantes=[...anterior.participantes.slice(indice),...anterior.participantes.slice(0,indice)];
-      }
+      const plan = politica.planificarCambioTurno(anterior?.participantes, datos.responsable, actual.emailResponsable===destino, datos.limite, datos.frecuencia);
+      const participantes = plan.participantes;
       if(actual.turnoId) turnos.set(id,(turnos.get(id)||[]).filter(t=>t.id!==actual.turnoId));
       Object.assign(actual,{titulo:datos.titulo,limite:datos.limite,emailResponsable:destino,turnoId:null});
-      if(datos.frecuencia!=='puntual') {
+      if(plan.recurrente) {
         actual.turnoId=randomUUID();
-        const diaMes=datos.frecuencia==='mensual'?Number(datos.limite.slice(-2)):null;
+        const diaMes=plan.diaMes;
         if(!turnos.has(id)) turnos.set(id,[]);
-        turnos.get(id).push({id:actual.turnoId,titulo:datos.titulo,participantes,diaMes,fecha:moverFechaTurno(datos.limite,diaMes),posicion:1 % participantes.length});
+        turnos.get(id).push({id:actual.turnoId,titulo:datos.titulo,participantes,diaMes,fecha:plan.siguienteFecha,posicion:plan.siguientePosicion});
       }
       return true;
     },
@@ -677,27 +642,23 @@ export function crearRepositorioHogaresMemoria(usuarios) {
         responsable: (await usuarios.buscarPorEmail(emailResponsable)).nombre
       })));
     },
-    async prepararTurnos(id, email, hoy) {
+    async prepararTurnos(id, email, hoy, planificar) {
       const hogar = await this.consultar(id, email);
       if (!hogar) return [];
       const activos = new Map(hogar.miembros.map(miembro => [miembro.id, miembro]));
       return (turnos.get(id) ?? []).map(turno => {
-        let siguiente = siguienteMiembro(turno.participantes, turno.posicion, activos);
-        for (let generadas = 0; siguiente && moverFechaTurno(turno.fecha, turno.diaMes, -1) < hoy && generadas < 52; generadas++) {
-          const responsable = [...hogares.get(id).miembros.keys()].find(
-            miembro => idMiembro(id, miembro) === siguiente.miembro.id
-          );
-          tareas.get(id).push({
-            id: randomUUID(), turnoId: turno.id, titulo: turno.titulo, limite: turno.fecha, emailResponsable: responsable, completada: null
-          });
-          turno.fecha = moverFechaTurno(turno.fecha, turno.diaMes);
-          turno.posicion = siguiente.siguiente;
-          siguiente = siguienteMiembro(turno.participantes, turno.posicion, activos);
+        const plan = planificar(turno.fecha, turno.posicion, turno.participantes, turno.diaMes, activos, hoy);
+        for (const generada of plan.tareas) {
+          const responsable = [...hogares.get(id).miembros.keys()].find(email => idMiembro(id, email) === generada.miembro.id);
+          tareas.get(id).push({ id: randomUUID(), turnoId: turno.id, titulo: turno.titulo, limite: generada.fecha, emailResponsable: responsable, completada: null });
         }
+        turno.fecha = plan.fecha;
+        turno.posicion = plan.posicion;
+        const siguiente = plan.siguiente;
         return { titulo: turno.titulo, fecha: turno.fecha, responsable: siguiente?.miembro.nombre ?? null };
       });
     },
-    async crearTurno(id, email, tarea) {
+    async crearTurno(id, email, tarea, politica) {
       const hogar = await this.consultar(id, email);
       if (!hogar) return false;
       const propia = idMiembro(id, email);
@@ -707,7 +668,7 @@ export function crearRepositorioHogaresMemoria(usuarios) {
       if (!turnos.has(id)) turnos.set(id, []);
       turnos.get(id).push({
         id: tarea.id, titulo: tarea.titulo, participantes, diaMes: tarea.diaMes,
-        fecha: moverFechaTurno(tarea.limite, tarea.diaMes), posicion: 1 % participantes.length
+        fecha: politica.moverFechaTurno(tarea.limite, tarea.diaMes), posicion: 1 % participantes.length
       });
       return true;
     },

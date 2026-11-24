@@ -1,26 +1,27 @@
-import { crearCanalAvisos } from './avisos-en-vivo.js';
-import { crearFinanzas } from './finanzas.js';
+import { crearCanalAvisos } from './datos/avisos-en-vivo.js';
+import { crearFinanzas } from './logica/finanzas.js';
+import { crearRepositorioFinanzasMemoria, crearRepositorioFinanzasPostgres } from './datos/datos-finanzas.js';
+import { prepararDatos } from './datos/preparar-datos.js';
 // Capa API: recibe peticiones HTTP, llama a la lógica
 // y devuelve respuestas al cliente.
 import express from 'express';
 import session from 'express-session';
 import {
-  obtenerEstadoAplicacion,
   crearServicioUsuarios,
   dominioPermitido
-} from './logica.js';
-import { crearRepositorioUsuarios } from './datos.js';
-import { crearConexion } from './conexion.js';
-import { crearRepositorioUsuariosPostgres } from './datos-postgres.js';
+} from './logica/logica.js';
+import { crearRepositorioUsuarios } from './datos/datos.js';
+import { crearConexion } from './datos/conexion.js';
+import { crearRepositorioUsuariosPostgres } from './datos/datos-postgres.js';
 import { fileURLToPath } from 'node:url';
-import { registrarActividad } from './actividad.js';
-import { crearCorreoConfirmacion } from './correo.js';
-import { crearServicioConfirmacion } from './confirmacion.js';
-import { crearOAuthGoogle } from './oauth-google.js';
-import { crearServicioIdentidadGoogle } from './identidad-google.js';
-import { crearRepositorioHogaresPostgres, crearRepositorioHogaresMemoria } from './datos-hogares.js';
-import { crearServicioHogares } from './hogares.js';
-import { crearApiHogares } from './api-hogares.js';
+import { registrarActividad } from './infraestructura/actividad.js';
+import { crearCorreoConfirmacion } from './infraestructura/correo.js';
+import { crearServicioConfirmacion } from './logica/confirmacion.js';
+import { crearOAuthGoogle } from './infraestructura/oauth-google.js';
+import { crearServicioIdentidadGoogle } from './logica/identidad-google.js';
+import { crearRepositorioHogaresPostgres, crearRepositorioHogaresMemoria } from './datos/datos-hogares.js';
+import { crearServicioHogares } from './logica/hogares.js';
+import { crearApiHogares } from './api/api-hogares.js';
 
 // Creamos la aplicación Express.
 const app = express();
@@ -36,8 +37,7 @@ const repositorioUsuarios = usarMemoria
 
 // Comprobamos la conexión y la existencia de la tabla antes de arrancar.
 if (conexion) {
-  await conexion.query('SELECT email FROM usuarios LIMIT 1');
-  await conexion.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil TEXT');
+  await prepararDatos(conexion);
 }
 
 const servicioUsuarios = crearServicioUsuarios(repositorioUsuarios);
@@ -205,7 +205,8 @@ const repositorioHogares = usarMemoria
   ? crearRepositorioHogaresMemoria(repositorioUsuarios)
   : crearRepositorioHogaresPostgres(conexion);
 const servicioHogares = crearServicioHogares(repositorioHogares);
-app.use('/api/hogares', exigirSesion, crearApiHogares(servicioHogares, crearFinanzas(conexion, servicioHogares), crearCanalAvisos(conexion)));
+const repositorioFinanzas = usarMemoria ? crearRepositorioFinanzasMemoria() : crearRepositorioFinanzasPostgres(conexion);
+app.use('/api/hogares', exigirSesion, crearApiHogares(servicioHogares, crearFinanzas(repositorioFinanzas, servicioHogares), crearCanalAvisos(conexion)));
 
 // Solo permite continuar a un administrador.
 function exigirAdministrador(req, res, next) {
@@ -247,10 +248,8 @@ function permitirEliminarCuenta(req, res, next) {
 
 // GET: consulta el estado de la aplicación.
 app.get('/api/estado', (req, res) => {
-  const estado = obtenerEstadoAplicacion();
-
   res.json({
-    ...estado,
+    mensaje: 'Servidor funcionando',
     persistenciaConfigurada: !usarMemoria
   });
 });

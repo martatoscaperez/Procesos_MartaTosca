@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { registrarActividad } from '../servidor/actividad.js';
+import { registrarActividad } from '../servidor/infraestructura/actividad.js';
 
 test('registra un evento JSON con fecha y campos permitidos', (t) => {
   const salidas = [];
