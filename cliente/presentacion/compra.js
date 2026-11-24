@@ -1,4 +1,4 @@
-import { solicitarHogares } from './comunicacion/rest.js';
+import { solicitarHogares } from '../comunicacion/rest.js';
 
 export function prepararCompra(id) {
   const porId = nombre => document.getElementById(nombre);

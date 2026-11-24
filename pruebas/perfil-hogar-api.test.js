@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { randomUUID } from 'node:crypto';
-import { crearApiHogares } from '../servidor/api-hogares.js';
-import { crearServicioHogares } from '../servidor/hogares.js';
-import { crearRepositorioHogaresMemoria } from '../servidor/datos-hogares.js';
+import { crearApiHogares } from '../servidor/api/api-hogares.js';
+import { crearServicioHogares } from '../servidor/logica/hogares.js';
+import { crearRepositorioHogaresMemoria } from '../servidor/datos/datos-hogares.js';
 
 test('la API permite editar el perfil al administrador y rechaza a miembros y ajenos', async t => {
   const servicio = crearServicioHogares(crearRepositorioHogaresMemoria({

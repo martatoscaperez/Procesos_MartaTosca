@@ -1,10 +1,6 @@
 import bcrypt from 'bcrypt';
 import { validarFoto } from './imagenes.js';
 import { randomBytes, createHash } from 'node:crypto';
-import {
-  obtenerEstadoDatos,
-  crearRepositorioUsuarios
-} from './datos.js';
 
 // Comprueba el dominio sin acceder a la base de datos.
 export function dominioPermitido(
@@ -27,16 +23,6 @@ export function dominioPermitido(
 
   return dominiosPermitidos.includes(dominio);
 }
-// Consulta el estado del almacenamiento.
-export function obtenerEstadoAplicacion() {
-  const datos = obtenerEstadoDatos();
-
-  return {
-    mensaje: 'Servidor funcionando',
-    persistenciaConfigurada: datos.persistenciaConfigurada
-  };
-}
-
 // Valida y normaliza el email.
 function normalizarEmail(email) {
   if (typeof email !== 'string' || email.trim() === '') {
@@ -59,7 +45,7 @@ function obtenerDatosPublicos(usuario) {
 
 // Aplica las mismas reglas con cualquier repositorio compatible.
 export function crearServicioUsuarios(
-  repositorio = crearRepositorioUsuarios()
+  repositorio
 ) {
   return {
     async consultarPerfil(email) {

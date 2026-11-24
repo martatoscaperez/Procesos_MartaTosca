@@ -1,8 +1,8 @@
-import { crearConexion } from '../servidor/conexion.js';
+import { crearConexion } from '../servidor/datos/conexion.js';
 import {
   crearRepositorioUsuariosPostgres
-} from '../servidor/datos-postgres.js';
-import { crearServicioUsuarios } from '../servidor/logica.js';
+} from '../servidor/datos/datos-postgres.js';
+import { crearServicioUsuarios } from '../servidor/logica/logica.js';
 
 // Lee las credenciales desde el entorno.
 const email = process.env.ADMIN_EMAIL;

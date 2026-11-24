@@ -46,7 +46,7 @@ async function entrar(email, clave) {
   return cookie;
 }
 try {
-  for (const archivo of ['index.html', 'piso.html', 'tema-hogardu.css', 'ranking.js', 'cuenta.js', 'avisos.js']) {
+  for (const archivo of ['index.html', 'piso.html', 'tema-hogardu.css', 'presentacion/ranking.js', 'presentacion/cuenta.js', 'presentacion/avisos.js']) {
     const respuesta = await solicitar('/' + archivo);
     assert.equal(respuesta.status, 200, `No se sirve ${archivo}.`);
     const actual = await respuesta.text();

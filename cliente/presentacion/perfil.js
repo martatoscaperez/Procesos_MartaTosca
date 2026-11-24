@@ -1,4 +1,4 @@
-import { solicitarHogares } from './comunicacion/rest.js';
+import { solicitarHogares } from '../comunicacion/rest.js';
 
 export function prepararPerfil(hogar) {
   const porId = id => document.getElementById(id);

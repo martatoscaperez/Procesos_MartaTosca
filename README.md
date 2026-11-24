@@ -82,33 +82,48 @@ https://github.com/martatoscaperez/Procesos_MartaTosca
 
 ## Arquitectura
 
-El backend está separado en tres capas:
+La aplicación separa presentación, comunicación, API, lógica de negocio y datos.
+Las carpetas reflejan esas responsabilidades:
 
-- API: `servidor/api.js` recibe peticiones, aplica controles de acceso
-  y devuelve respuestas HTTP.
-- Lógica: `servidor/logica.js` contiene las reglas de gestión de usuarios.
-- Datos: `servidor/datos-postgres.js` consulta y guarda usuarios
-  en PostgreSQL.
+```text
+cliente/
+  index.html, piso.html, confirmar.html   Pantallas
+  *.css                                 Estilos
+  presentacion/                         Controladores de la interfaz
+  comunicacion/rest.js                   HTTP y conexión SSE
+servidor/
+  api.js                                Arranque, ensamblado y rutas de acceso
+  api/                                  Rutas HTTP del piso
+  logica/                               Servicios, validaciones y reglas de negocio
+  datos/                                Repositorios, SQL, transacciones y conexión
+  infraestructura/                      Correo, OAuth y registro de actividad
+  compartido/                           Errores compartidos entre capas
+pruebas/                                Pruebas funcionales y de arquitectura
+scripts/                                Administración, migraciones y comprobaciones
+```
 
-Módulos auxiliares:
+El flujo habitual es **presentación → comunicación → API → lógica → datos →
+PostgreSQL**. La respuesta recorre el camino inverso. El navegador no accede a
+PostgreSQL y la comunicación no modifica el DOM.
 
-- `servidor/conexion.js`: crea las conexiones a PostgreSQL.
-- `servidor/esquema.sql`: define la tabla de usuarios.
-- `servidor/datos.js`: repositorio en memoria utilizado en las pruebas.
-- `servidor/actividad.js`: registra eventos relevantes.
-- `scripts/crear-admin.js`: inicializa el primer administrador.
+Los servicios de `servidor/logica/` reciben repositorios por parámetro: no crean
+conexiones ni importan Express, PostgreSQL o una implementación concreta de datos.
+Usuarios, hogares, tareas y gastos siguen esta separación. Los cálculos de dinero,
+repartos, saldos, fechas y rotación de turnos pertenecen a la lógica; los
+repositorios se encargan de guardar y consultar los datos. Las operaciones que
+necesitan leer y escribir de forma atómica se ejecutan dentro de una transacción
+del repositorio, aplicando el plan o la operación aportada por el servicio.
 
-El recorrido de las peticiones es API → lógica → datos.
+`servidor/api.js` es el punto de entrada y de ensamblado: selecciona los
+repositorios de PostgreSQL o de memoria y los inyecta en los servicios. También
+configura sesiones, autenticación y el servidor HTTP. La preparación del esquema
+se delega en `servidor/datos/preparar-datos.js`; las rutas no ejecutan SQL.
+Los archivos SQL se encuentran en `servidor/datos/` y los comandos de migración
+siguen disponibles mediante los mismos scripts de npm.
 
-El frontend también separa sus responsabilidades:
-
-- `cliente/index.html`, `cliente/estilos.css` y `cliente/controlador.js`:
-  interfaz y presentación.
-- `cliente/comunicacion/rest.js`: comunicación con la API.
-
-El backend sirve el frontend desde el mismo origen.
-El navegador no accede directamente a la base de datos.
-Las consultas SQL están en la capa de datos.
+`pruebas/arquitectura.test.js` comprueba las dependencias entre capas: impide
+comunicaciones directas desde presentación, acceso a PostgreSQL desde la lógica,
+importaciones de servicios desde datos y referencias a archivos inexistentes.
 
 ## Funcionalidades
 
@@ -207,10 +222,10 @@ Preparación de la base existente, antes de desplegar el código:
 npm.cmd run migrar-google
 ```
 
-El script ejecuta `servidor/migracion-google.sql` sobre `DATABASE_URL` de `.env`.
+El script ejecuta `servidor/datos/migracion-google.sql` sobre `DATABASE_URL` de `.env`.
 Añade el identificador Google único y permite contraseñas nulas en cuentas
 creadas por OAuth. No elimina cuentas ni cambia contraseñas, roles o estados.
-Se puede repetir. Una base nueva usa directamente `servidor/esquema.sql`.
+Se puede repetir. Una base nueva usa directamente `servidor/datos/esquema.sql`.
 
 En Google Auth Platform, configurar un cliente OAuth de tipo «Aplicación web»:
 
@@ -263,7 +278,7 @@ Pasos:
 4. Configurar `DATABASE_URL`, `SESSION_SECRET` y
    `NODE_ENV=development` en `.env`.
 
-5. Ejecutar el contenido de `servidor/esquema.sql` en PostgreSQL.
+5. Ejecutar el contenido de `servidor/datos/esquema.sql` en PostgreSQL.
    En Neon puede utilizarse el SQL Editor.
 
 6. Arrancar el servidor:
@@ -406,7 +421,7 @@ queda pendiente utilizar un almacén de sesiones compartido.
 
 ## Registro de actividad
 
-`servidor/actividad.js` escribe una línea JSON por evento, con fecha
+`servidor/infraestructura/actividad.js` escribe una línea JSON por evento, con fecha
 y tipo de actividad.
 
 Se registran:
@@ -447,7 +462,7 @@ Para ejecutar únicamente la prueba de PostgreSQL:
 node --env-file=.env --test pruebas/postgres.test.js
 ```
 
-La suite actual incluye 92 pruebas, contando los casos de hogares, tareas,
+La suite actual incluye 99 pruebas, contando los casos de hogares, tareas,
 finanzas, normas, calendario, compra y avisos del Sprint 2. La base del
 Sprint 1 incluye los siguientes grupos:
 
@@ -486,7 +501,7 @@ Se utiliza GitHub Flow:
 `.github/workflows/ci.yml` ejecuta las pruebas en cada pull request
 y en los cambios de main.
 
-El CI prepara una base PostgreSQL temporal y ejecuta las 92 pruebas.
+El CI prepara una base PostgreSQL temporal y ejecuta las 99 pruebas.
 No necesita las credenciales de Neon.
 
 ## Despliegue
@@ -517,7 +532,7 @@ debe comprobarse que el CI termina correctamente.
 PostgreSQL continúa alojado en Neon, con la misma base de datos que utilizaba
 Render. La migración del servidor conserva las cuentas existentes y no
 requiere crear una conexión Cloud SQL ni volver a inicializar la tabla.
-Para una base nueva, ejecutar `servidor/esquema.sql` antes del primer arranque.
+Para una base nueva, ejecutar `servidor/datos/esquema.sql` antes del primer arranque.
 
 Con mínimo 0, el primer acceso después de un periodo de inactividad puede
 tardar más y puede ser necesario volver a iniciar sesión.
@@ -852,7 +867,7 @@ amplían este alcance de entrega.
 
 9. Probar y publicar el incremento.
    Persistencia en PostgreSQL; pruebas de permisos, fechas, dinero y reintentos;
-   92 pruebas automatizadas superadas; revisión de escritorio y edición
+   99 pruebas automatizadas superadas; revisión de escritorio y edición
    conservada tras recargar. Integración en main, CI y despliegue en Cloud Run;
    11 comprobaciones sobre la aplicación publicada con dos sesiones
    independientes, incluidos SSE y los avisos sin leer.

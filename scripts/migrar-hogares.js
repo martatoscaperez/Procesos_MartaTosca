@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { crearConexion } from '../servidor/conexion.js';
+import { crearConexion } from '../servidor/datos/conexion.js';
 
 const conexion = crearConexion();
 let cliente;
@@ -8,7 +8,7 @@ try {
   await cliente.query('DISCARD TEMP');
   await cliente.query('BEGIN');
   await cliente.query(await readFile(
-    new URL('../servidor/migracion-hogares.sql', import.meta.url), 'utf8'
+    new URL('../servidor/datos/migracion-hogares.sql', import.meta.url), 'utf8'
   ));
   await cliente.query('COMMIT');
   console.log('Tablas de hogares e invitaciones preparadas.');

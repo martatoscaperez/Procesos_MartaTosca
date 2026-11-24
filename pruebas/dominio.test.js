@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   dominioPermitido,
   crearServicioUsuarios
-} from '../servidor/logica.js';
+} from '../servidor/logica/logica.js';
 
 // Configura la variable para una prueba y la restaura al terminar.
 function configurarDominios(t, valor) {

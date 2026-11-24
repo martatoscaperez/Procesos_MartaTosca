@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ErrorHogar } from './hogares.js';
+import { ErrorHogar } from '../logica/hogares.js';
 
 export function crearApiHogares(servicio, finanzas, canalAvisos) {
   const router = Router();

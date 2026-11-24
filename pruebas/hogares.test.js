@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { crearRepositorioHogaresMemoria } from '../servidor/datos-hogares.js';
-import { crearServicioHogares } from '../servidor/hogares.js';
+import { crearRepositorioHogaresMemoria } from '../servidor/datos/datos-hogares.js';
+import { crearServicioHogares } from '../servidor/logica/hogares.js';
 
 function preparar() {
   let ahora = new Date('2026-11-05T12:00:00Z');

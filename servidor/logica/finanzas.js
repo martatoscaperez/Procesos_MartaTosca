@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ErrorHogar } from './hogares.js';
+import { ErrorHogar } from '../compartido/errores.js';
 export function centimos(valor, permitirCero = false) {
   if(typeof valor !== 'string' || !/^\d{1,7}([.,]\d{1,2})?$/.test(valor)) throw new ErrorHogar('Escribe un importe válido con hasta dos decimales.',400);
   const [entero, decimal='']=valor.replace(',','.').split('.');
@@ -20,26 +20,12 @@ export function saldos(registros) {
   for(const d of deben) for(const c of cobran) {const importe=Math.min(d.importe,c.importe); if(importe) deudas.push({deudor:d.id,nombreDeudor:nombres.get(d.id),acreedor:c.id,nombreAcreedor:nombres.get(c.id),importe});d.importe-=importe;c.importe-=importe;}
   return deudas;
 }
-export function crearFinanzas(conexion, hogares) {
-  const memoria=new Map();
-  async function operar(id,accion, guardar=true) {
-    if(!conexion) {const registros=structuredClone(memoria.get(id)||[]);const resultado=await accion(registros);memoria.set(id,registros);return resultado;}
-    const c=await conexion.connect();
-    try {await c.query('BEGIN');await c.query('SELECT id FROM public.hogares WHERE id=$1 FOR UPDATE',[id]);
-      const {rows}=await c.query('SELECT datos FROM public.movimientos_hogar WHERE hogar_id=$1 ORDER BY creado_en,id',[id]);
-      const registros=rows.map(r=>r.datos);const resultado=await accion(registros);
-      if(guardar) {
-        await c.query('DELETE FROM public.movimientos_hogar WHERE hogar_id=$1',[id]);
-        for(const r of registros) await c.query('INSERT INTO public.movimientos_hogar (id,hogar_id,datos) VALUES ($1,$2,$3)',[r.id,id,r]);
-      }
-      await c.query('COMMIT');return resultado;
-    }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
-  }
+export function crearFinanzas(repositorio, hogares) {
   return {
-    async consultar(id,email) {await hogares.consultar(id,email);return operar(id,rs=>({movimientos:rs,saldos:saldos(rs)}),false);},
+    async consultar(id,email) {await hogares.consultar(id,email);return repositorio.operar(id,rs=>({movimientos:rs,saldos:saldos(rs)}),false);},
     async guardar(id,email,datos) {
       const hogar=await hogares.consultar(id,email);
-      return operar(id,rs=>{
+      return repositorio.operar(id,rs=>{
         if(typeof datos.id!=='string'||!/^[0-9a-f-]{36}$/i.test(datos.id)) throw new ErrorHogar('Solicitud inválida.',400);
         const existente=rs.find(r=>r.id===datos.id);
         if(existente && datos.nuevo) return {guardado:true};
@@ -64,6 +50,6 @@ export function crearFinanzas(conexion, hogares) {
         return {guardado:true};
       });
     },
-    async eliminar(id,email,movimiento) {await hogares.consultar(id,email);return operar(id,rs=>{const indice=rs.findIndex(r=>r.id===movimiento);if(indice<0) throw new ErrorHogar('El movimiento ya no existe.',404);rs.splice(indice,1);return {eliminado:true};});}
+    async eliminar(id,email,movimiento) {await hogares.consultar(id,email);return repositorio.operar(id,rs=>{const indice=rs.findIndex(r=>r.id===movimiento);if(indice<0) throw new ErrorHogar('El movimiento ya no existe.',404);rs.splice(indice,1);return {eliminado:true};});}
   };
 }
