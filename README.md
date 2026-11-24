@@ -1,5 +1,16 @@
 # HogarDu
 
+## Documentación del proyecto
+
+La documentación actual está organizada en [docs/index.md](docs/index.md):
+[requisitos](docs/requisitos.md), [arquitectura](docs/arquitectura.md),
+[decisiones](docs/decisiones.md), [procesos](docs/procesos.md),
+[registro de cambios](docs/log.md), [Sprint 1](docs/sprint-1.md) y
+[Sprint 2](docs/sprint-2.md).
+Describe la versión revisada el 24 de noviembre de 2026 y distingue el cierre
+de los sprints de las correcciones posteriores. Los modelos propuestos en los
+apartados históricos de este README se conservan como antecedentes de diseño.
+
 En Tareas, «Lotería de tareas» permite indicar hasta 200 tareas, una fecha límite
 y los compañeros participantes. El sorteo equilibra el número de tareas con una
 diferencia máxima de una por persona. Las asignaciones se guardan juntas y
@@ -869,7 +880,7 @@ amplían este alcance de entrega.
    Persistencia en PostgreSQL; pruebas de permisos, fechas, dinero y reintentos;
    99 pruebas automatizadas superadas; revisión de escritorio y edición
    conservada tras recargar. Integración en main, CI y despliegue en Cloud Run;
-   11 comprobaciones sobre la aplicación publicada con dos sesiones
+   18 comprobaciones sobre la aplicación publicada con dos sesiones
    independientes, incluidos SSE y los avisos sin leer.
 
 El cierre documenta la aplicación web de escritorio. El plano interactivo,
